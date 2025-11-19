@@ -33,7 +33,8 @@ const SupermarketController = {
   /**
    * Get a product by ID.
    */
-  getById(req, res) {
+
+  viewById(req, res) {
     const id = req.params.id || req.params.productId;
     Supermarket.getById(id, (err, product) => {
       if (err) return res.status(500).json({ error: 'Database error', details: err.message });
@@ -42,6 +43,18 @@ const SupermarketController = {
         return res.json(product);
       }
       return res.render('product', { product });
+    });
+  },
+
+  getById(req, res) {
+    const id = req.params.id || req.params.productId;
+    Supermarket.getById(id, (err, product) => {
+      if (err) return res.status(500).json({ error: 'Database error', details: err.message });
+      if (!product) return res.status(404).json({ error: 'Product not found' });
+      if (req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'))) {
+        return res.json(product);
+      }
+      return res.render('editProduct', { product });
     });
   },
 
@@ -60,7 +73,7 @@ const SupermarketController = {
       if (err) return res.status(500).json({ error: 'Database error', details: err.message });
       // If form submit, redirect to list; otherwise return created resource
       if (req.headers.accept && req.headers.accept.includes('text/html')) {
-        return res.redirect('/');
+        return res.redirect('/adminView');
       }
       return res.status(201).json({ productId: result.insertId, ...product });
     });
@@ -75,7 +88,7 @@ const SupermarketController = {
     if (req.body.productName !== undefined) product.productName = req.body.productName;
     if (req.body.quantity !== undefined) product.quantity = req.body.quantity !== '' ? Number(req.body.quantity) : null;
     if (req.body.price !== undefined) product.price = req.body.price !== '' ? Number(req.body.price) : null;
-    if (req.body.image !== undefined) product.image = req.body.image;
+    if (req.body.image !== undefined) product.image = req.file.filename;
 
     Supermarket.update(id, product, (err, result) => {
       if (err) return res.status(500).json({ error: 'Database error', details: err.message });
@@ -84,7 +97,7 @@ const SupermarketController = {
         return res.status(404).json({ error: 'Product not found or no change' });
       }
       if (req.headers.accept && req.headers.accept.includes('text/html')) {
-        return res.redirect(`/product/${id}`);
+        return res.redirect(`/adminView`);
       }
       return res.json({ success: true, result });
     });
@@ -101,7 +114,7 @@ const SupermarketController = {
         return res.status(404).json({ error: 'Product not found' });
       }
       if (req.headers.accept && req.headers.accept.includes('text/html')) {
-        return res.redirect('/');
+        return res.redirect('/adminView');
       }
       return res.json({ success: true });
     });

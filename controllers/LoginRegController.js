@@ -6,6 +6,7 @@ const LoginRegController = {
             password: req.body.password,
             email: req.body.email,
             contact: req.body.contact,
+            role: 'user', // default role
         };
 
         LoginReg.add(userdetails, (err, result) => {

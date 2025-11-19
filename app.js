@@ -46,13 +46,13 @@ app.post('/registerUser', (req, res) => {
 
 //ADMIN DASHBOARD----------------------------------------------------------------------------------------------------------------------------------
 // List products (home)
-app.get('/', (req, res) => {
+app.get('/adminView', (req, res) => {
   return SupermarketController.list(req, res);
 });
 
 // View single product
 app.get('/product/:id', (req, res) => {
-  return SupermarketController.getById(req, res);
+  return SupermarketController.viewById(req, res);
 });
 
 // Render add product form
@@ -74,28 +74,11 @@ app.post('/addProduct', upload.single('image'), (req, res) => {
 
 // Render edit product form
 app.get('/editProduct/:id', (req, res) => {
-  const productId = req.params.id;
-  // Use model directly to render edit form (keeps edit view separate from controller's product view)
-  Supermarket.getById(productId, (err, product) => {
-    if (err) {
-      console.error('Database error:', err.message);
-      return res.status(500).send('Error retrieving product');
-    }
-    if (!product) return res.status(404).send('Product not found');
-    return res.render('editProduct', { product });
-  });
+  return SupermarketController.getById(req, res);
 });
 
 // Handle update product (with optional file upload)
 app.post('/editProduct/:id', upload.single('image'), (req, res) => {
-  // Map incoming fields to controller/model expected names
-  if (req.body.name !== undefined) req.body.productName = req.body.name;
-  // For image: if new file uploaded use it, otherwise keep currentImage field from the form
-  if (req.file) {
-    req.body.image = req.file.filename;
-  } else if (req.body.currentImage !== undefined) {
-    req.body.image = req.body.currentImage;
-  }
   return SupermarketController.update(req, res);
 });
 
