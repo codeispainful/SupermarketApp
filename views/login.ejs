@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Supermarket System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <style>
+        body {
+            background: #f5f7fa;
+        }
+        .login-card {
+            max-width: 420px;
+            margin: 70px auto;
+            padding: 30px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        .brand-title {
+            font-weight: 700;
+            color: #2c7a7b;
+        }
+        .btn-supermarket {
+            background: #2c7a7b;
+            border: none;
+        }
+        .btn-supermarket:hover {
+            background: #27696b;
+        }
+        .form-label {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2 class="text-center brand-title mb-4">Supermarket Login</h2>
+
+        <% if (errors && errors.length > 0) { %>
+            <div class="alert alert-danger">
+                <%= errors[0] %>
+            </div>
+        <% } %>
+
+        <form action="/loginUser" method="POST">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" id="username" name="username" class="form-control" placeholder="Enter username" required />
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required />
+            </div>
+
+            <button type="submit" class="btn btn-supermarket text-white w-100 mt-2">Login</button>
+        </form>
+
+        <p class="text-center mt-3">
+            Don't have an account? <a href="/registerUser" class="text-decoration-none">Register here</a>
+        </p>
+    </div>
+
+</body>
+</html>

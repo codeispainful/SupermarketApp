@@ -21,6 +21,14 @@ const LoginReg = {
             }
         });
     },
+    login(username, password, callback) {
+        const sql = 'SELECT * FROM users WHERE username = ? AND password = ?';  
+        db.query(sql, [username, password], (err, results) => {
+            if (err) return callback(err);
+            if (results.length === 0) return callback({ message: "Invalid username or password" });
+            callback(null, results[0]);
+        });
+    }
 };
 
 module.exports = LoginReg;
