@@ -32,7 +32,7 @@ const LoginRegController = {
                 return res.redirect("/loginUser");
             }
             req.session.user = {
-                userId: result.userId,
+                userId: result.userid,
                 name: result.username,
                 email: result.email,
                 contact: result.contact,
@@ -40,12 +40,19 @@ const LoginRegController = {
             };
             req.flash("success", "Logged in");
             if (result.role === "admin") {
+                req.flash("success", " welcome admin, "+result.username);
                 return res.redirect("/adminView");
             } else {
+                req.flash("success", " welcome user, "+result.username);
                 return res.redirect("/");
             }
         });
-    }
+    },
+    logout(req, res) {
+        req.session.destroy((err) => {
+            res.redirect("/loginUser");
+        });
+    },
 };
 
 module.exports = LoginRegController;

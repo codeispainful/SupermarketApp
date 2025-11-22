@@ -24,6 +24,9 @@ const Supermarket = require('./models/Supermarket');
 const LoginRegController = require('./controllers/LoginRegController');
 const LoginReg = require('./models/LoginReg');
 
+const CartController = require('./controllers/CartController');
+const Cart = require('./models/Cart');
+
 // For session management and flash messages
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
@@ -33,7 +36,7 @@ app.set('view engine', 'ejs');
 app.use(express.static('public'));
 
 // Body parsing
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
 // use session and flash for login messages
 app.use(session({
@@ -45,6 +48,11 @@ app.use(session({
 
 app.use(flash());
 
+app.use((req, res, next) => {
+    res.locals.success = req.flash("success");
+    res.locals.error = req.flash("error");
+    next();
+});
 
 // Routes using controller methods
 // Login Reg -------------------------------------------------------------------------------------------------------------------------------
@@ -57,14 +65,41 @@ app.post('/registerUser', (req, res) => {
 });
 
 app.get('/loginUser', (req, res) => {
-  res.render('login', { 
-    errors: req.flash('error'),
-    success: req.flash('success')
-  });
+  res.render('login');
 });
 
 app.post('/loginUser', (req, res) => {
   return LoginRegController.login(req, res);
+});
+
+app.get('/logout', (req, res) => {
+  return LoginRegController.logout(req, res);
+});
+
+//USER DASHBOARD----------------------------------------------------------------------------------------------------------------------------------
+app.get('/',checkAuthenticated, (req, res) => {
+  return SupermarketController.userdashboardlist(req, res);
+});
+
+//CART HANDLER-----------------------------------------------------------------------------------------------------------------------------------
+app.post('/addtocart/:id',checkAuthenticated, (req, res) => {
+  return CartController.addToCart(req, res);
+});
+
+app.get('/viewcart',checkAuthenticated, (req, res) => {
+  return CartController.viewCart(req, res);
+});
+
+app.post('/cartupdate',checkAuthenticated, (req, res) => {
+  return CartController.updateCart(req, res);
+});
+
+app.get('/cartdelete/:id',checkAuthenticated, (req, res) => {
+  return CartController.deleteFromCart(req, res);
+});
+
+app.get('/checkout',checkAuthenticated, (req, res) => {
+  return CartController.checkout(req, res);
 });
 
 //ADMIN DASHBOARD----------------------------------------------------------------------------------------------------------------------------------
@@ -109,9 +144,6 @@ app.post('/editProduct/:id',checkAuthenticated, checkAuthorised(['admin']), uplo
 app.get('/deleteProduct/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
   return SupermarketController.delete(req, res);
 });
-
-//USER DASHBOARD----------------------------------------------------------------------------------------------------------------------------------
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

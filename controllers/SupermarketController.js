@@ -1,4 +1,5 @@
 const Supermarket = require('../models/Supermarket');
+const Cart = require('../models/Cart');
 
 /**
  * Controller for products (Supermarket).
@@ -26,13 +27,45 @@ const SupermarketController = {
       if (req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'))) {
         return res.json(rows);
       }
-      return res.render('index', { products: rows });
+      return res.render('index', { products: rows, success: req.flash("success"), error: req.flash("error") });
     });
   },
 
-  /**
-   * Get a product by ID.
-   */
+  userdashboardlist(req, res) {
+    const userId = req.session.user.userId;
+    const params = {};
+    if (req.query.search) params.search = req.query.search;
+    if (req.query.limit) {
+      const n = parseInt(req.query.limit, 10);
+      if (!Number.isNaN(n)) params.limit = n;
+    }
+    if (req.query.offset) {
+      const n = parseInt(req.query.offset, 10);
+      if (!Number.isNaN(n)) params.offset = n;
+    }
+
+    Supermarket.getAll(params, (err, products) => {
+        if (err) return res.status(500).json({ error: 'Database error', details: err.message });
+        // Get user cart
+        Cart.getUserCart(userId, (err, cartItems) => {
+            if (err) return res.status(500).json({ error: 'Cart error', details: err.message });
+            // Convert cart items into a map for fast lookup
+            const cartMap = {};
+            cartItems.forEach(item => {
+                cartMap[item.productId] = item.quantity;
+            });
+
+            // Add cart quantity to products
+            products.forEach(product => {
+                product.cartQuantity = cartMap[product.productId] || 0;
+            });
+
+            return res.render("homepage", {
+                products
+            });
+        });
+    });
+  },
 
   viewById(req, res) {
     const id = req.params.id || req.params.productId;
@@ -67,6 +100,7 @@ const SupermarketController = {
       quantity: req.body.quantity != null ? Number(req.body.quantity) : null,
       price: req.body.price != null ? Number(req.body.price) : null,
       image: req.body.image || null,
+      category: req.body.category || null,
     };
 
     Supermarket.add(product, (err, result) => {
@@ -89,6 +123,7 @@ const SupermarketController = {
     if (req.body.quantity !== undefined) product.quantity = req.body.quantity !== '' ? Number(req.body.quantity) : null;
     if (req.body.price !== undefined) product.price = req.body.price !== '' ? Number(req.body.price) : null;
     if (req.body.image !== undefined) product.image = req.file.filename;
+    if (req.body.category !== undefined) product.category = req.body.category;
 
     Supermarket.update(id, product, (err, result) => {
       if (err) return res.status(500).json({ error: 'Database error', details: err.message });

@@ -25,6 +25,9 @@
                 <label for="price">Price:</label><br>
                 <input type="number" id="price" name="price" min="0" step="0.01" value = <%= product.price %> required><br><br>
 
+                <label for="category">Category:</label><br>
+                <input type="text" id="category" name="category" value = "<%= product.category %>" required><br><br>
+
                 <label for="image">Current Image:</label><br>
                 <input type="text" name='currentImage' value = <%=product.image%> readonly>
                 <img src = "/images/<%= product.image %>" width="20%"><br><br>

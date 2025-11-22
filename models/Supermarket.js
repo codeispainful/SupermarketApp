@@ -11,7 +11,7 @@ const Supermarket = {
    * @param {Function} callback (err, rows)
    */
   getAll(params, callback) {
-    let sql = 'SELECT productId, productName, quantity, price, image FROM products';
+    let sql = 'SELECT productId, productName, quantity, price, image, category FROM products';
     const values = [];
 
     if (params && params.search) {
@@ -37,7 +37,7 @@ const Supermarket = {
    * @param {Function} callback (err, row)
    */
   getById(productId, callback) {
-    const sql = 'SELECT productId, productName, quantity, price, image FROM products WHERE productId = ?';
+    const sql = 'SELECT productId, productName, quantity, price, image, category FROM products WHERE productId = ?';
     db.query(sql, [productId], (err, results) => {
       if (err) return callback(err);
       callback(null, results[0] || null);
@@ -50,12 +50,13 @@ const Supermarket = {
    * @param {Function} callback (err, result)
    */
   add(product, callback) {
-    const sql = 'INSERT INTO products (productName, quantity, price, image) VALUES (?, ?, ?, ?)';
+    const sql = 'INSERT INTO products (productName, quantity, price, image, category) VALUES (?, ?, ?, ?, ?)';
     const params = [
       product.productName || null,
       product.quantity != null ? product.quantity : null,
       product.price != null ? product.price : null,
       product.image || null,
+      product.category || null,
     ];
     db.query(sql, params, (err, result) => {
       if (err) return callback(err);
@@ -89,6 +90,10 @@ const Supermarket = {
       fields.push('image = ?');
       values.push(product.image);
     }
+    if (product.category !== undefined) {
+      fields.push('category = ?');
+      values.push(product.category);
+    }
 
     if (fields.length === 0) {
       return callback(null, { affectedRows: 0, message: 'No fields to update' });
@@ -111,6 +116,20 @@ const Supermarket = {
   delete(productId, callback) {
     const sql = 'DELETE FROM products WHERE productId = ?';
     db.query(sql, [productId], callback);
+  },
+  
+  getStockById(productId, callback) {
+    const sql = "SELECT quantity FROM products WHERE productId = ?";
+    db.query(sql, [productId], (err, rows) => {
+        if (err) return callback(err);
+        if (rows.length === 0) return callback({ message: "Product not found" });
+        callback(null, rows[0].quantity);
+    });
+  },
+
+  updateStockById(productId, newQuantity, callback) {
+    const sql = "UPDATE products SET quantity = ? WHERE productId = ?";
+    db.query(sql, [newQuantity, productId], callback);
   },
 };
 
