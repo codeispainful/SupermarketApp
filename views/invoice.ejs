@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice | Supermarket</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body { background-color: #f5f7fa; }
+.invoice-box {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+table { width: 100%; margin-top: 20px; }
+th, td { padding: 10px; text-align: left; }
+.total { font-weight: bold; font-size: 1.2rem; }
+
+/* Header styling */
+.company-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+.company-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 10px;
+}
+
+/* Terms & conditions */
+.terms {
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 25px;
+}
+
+/* Hide print + home buttons when printing */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    body {
+        background: white;
+    }
+}
+</style>
+</head>
+
+<body>
+<div class="container mt-5">
+    <div class="invoice-box">
+
+        <!-- Company Info -->
+        <div class="company-header">
+            <!-- Replace with real logo if available -->
+            <img src="/images/logo.png" class="company-logo" alt="Company Logo" onerror="this.style.display='none'">
+            
+            <h2>Supermarket Pte Ltd</h2>
+            <p>123 Orchard Road, #02-45<br>Singapore 238890</p>
+            <p>Email: support@supermarket.sg | Phone: +65 6123 4567</p>
+        </div>
+
+        <hr>
+
+        <!-- Invoice Title -->
+        <h3 class="text-center mb-3">🧾 Invoice</h3>
+
+        <p><strong>Order ID:</strong> <%= orderId %></p>
+        <p><strong>Order Date:</strong> <%= new Date(orderDatetime).toLocaleString() %></p>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Qty</th>
+                    <th>Subtotal (SGD)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% let total = 0; %>
+                <% orders.forEach(item => { %>
+                    <tr>
+                        <td><%= item.productName %></td>
+                        <td><%= item.quantity %></td>
+                        <td><%= item.subtotal.toFixed(2) %></td>
+                    </tr>
+                    <% total += item.subtotal; %>
+                <% }) %>
+
+                <tr>
+                    <td colspan="2" class="total">Total</td>
+                    <td class="total">SGD <%= total.toFixed(2) %></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Terms & Conditions -->
+        <div class="terms">
+            <h5>Terms & Conditions</h5>
+            <ul>
+                <li>All goods sold are non-refundable and non-exchangeable unless defective.</li>
+                <li>Please retain this invoice for warranty and support purposes.</li>
+                <li>Prices shown include GST where applicable.</li>
+                <li>For assistance, contact our support team within 7 days of purchase.</li>
+            </ul>
+        </div>
+
+        <!-- Buttons hidden in print view -->
+        <div class="mt-4 d-flex gap-2 no-print">
+            <button class="btn btn-primary" onclick="window.print()">🖨 Print Invoice</button>
+            <a href="/viewProfile" class="btn btn-secondary">Back to Profile</a>
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

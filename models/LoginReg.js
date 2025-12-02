@@ -4,7 +4,9 @@ const LoginReg = {
         const checkSql = 'SELECT * FROM users WHERE username = ?';
         db.query(checkSql, [userdetails.username], (err, results) => {
             if (err) return callback(err);
-            if (results.length > 0) return callback({ message: "Username already exists" });
+            if (results.length > 0) {
+                return callback(null, null);
+            }
             else {
                 const sql = 'INSERT INTO users (username, password, email, contact, role) VALUES (?, ?, ?, ?, ?)';
                 const params = [

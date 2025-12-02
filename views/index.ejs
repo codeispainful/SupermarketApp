@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,44 +8,100 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <title>Supermarket App</title>
 </head>
+
 <body>
-  <%- include('partials/adminnavbar') %>
-  <% if (success && success.length > 0) { %>
-    <div class="alert alert-success">
-        <%= success %>
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+    <div class="container-fluid">
+
+        <a class="navbar-brand" href="/adminView">Admin Dashboard - Supermarket App</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="collapsibleNavbar">
+            <ul class="navbar-nav">
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/addProduct">Add new product</a>
+                </li>
+
+                <li class="nav-item ms-2">
+                    <a class="nav-link" href="/adminViewUsers">User Management</a>
+                </li>
+
+            </ul>
+        </div>
+
+        <!-- Search Form -->
+        <form class="d-flex" method="get" action="/adminView">
+            <input name="search" class="form-control me-2" type="search" placeholder="Search products...">
+            <button class="btn btn-primary">Search</button>
+        </form>
+
+        <a href="/adminView" class="btn btn-secondary ms-2">Reset</a>
+
+        <a href="/logout" class="btn btn-outline-danger ms-2"
+            onclick="return confirm('Are you sure you want to logout?')">
+            Logout
+        </a>
+
     </div>
-  <% } %>
-  <div class="container">
-    <br>
-    <div class="text-center"><h2>Products from Supermarket App Database</h2></div>
-    <br>
-  
-    <table class="table table-hover small text-center">
-      <thead>
-          <tr>
-            <th width="100">Product Name</th>
-            <th width="100">Product Image</th>
-            <th width="50">Quantity</th>
-            <th width="50">Price</th>
-            <th width='50'>Category</th>
-            <th width='50'>Edit</th>
-            <th width='50'>Delete</th>
-          </tr>
-      </thead>
-      <tbody>
-        <% for(let i=0; i < products.length; i++) { %>
-          <tr>
-            <td><a href="/product/<%= products[i].productId %>"><%= products[i].productName %></a></td> <!--<a href="/product/... allows the handler to grab the id-->
-            <td><img src="images/<%= products[i].image%>" width="20%"></td>
-            <td><%= products[i].quantity %></td>
-            <td><%= products[i].price.toFixed(2) %></td>
-            <td><%= products[i].category %></td>
-            <td><a href="/editProduct/<%= products[i].productId %>">Edit</a></td>
-            <td><a href="/deleteProduct/<%= products[i].productId %>" onclick="return confirm('Are you sure you want to delete this product?')">Delete</a></td>
-          </tr>
-        <% } %>
-      </tbody>
-    </table>
-  </div>
+</nav>
+
+    <% if (success && success.length> 0) { %>
+            <div class="alert alert-success text-center">
+                <%= success %>
+            </div>
+            <% } %>
+
+        <div class="container">
+          <br>
+          <div class="text-center">
+            <h2>Products from Supermarket App Database</h2>
+          </div>
+          <br>
+
+          <table class="table table-hover small text-center">
+            <thead>
+              <tr>
+                <th width="100">Product Name</th>
+                <th width="100">Product Image</th>
+                <th width="50">Quantity</th>
+                <th width="50">Price</th>
+                <th width="50">Hidden</th>
+                <th width='50'>Category</th>
+                <th width='50'>Edit</th>
+                <th width='50'>Hide</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% for(let i=0; i < products.length; i++) { %>
+                <tr>
+                  <td><a href="/product/<%= products[i].productId %>">
+                      <%= products[i].productName %>
+                    </a></td> <!--<a href="/product/... allows the handler to grab the id-->
+                  <td><img src="images/<%= products[i].image%>" width="20%"></td>
+                  <td>
+                    <%= products[i].quantity %>
+                  </td>
+                  <td>
+                    <%= products[i].price.toFixed(2) %>
+                  </td>
+                  <td>
+                    <%= products[i].hidden==1 ? 'Yes' : 'No' %>
+                  </td>
+                  <td>
+                    <%= products[i].category %>
+                  </td>
+                  <td><a href="/editProduct/<%= products[i].productId %>">Edit</a></td>
+                  <td><a href="/deleteProduct/<%= products[i].productId %>"
+                      onclick="return confirm('Are you sure you want to hide this product?')">Hide</a></td>
+                </tr>
+                <% } %>
+            </tbody>
+          </table>
+        </div>
 </body>
+
 </html>

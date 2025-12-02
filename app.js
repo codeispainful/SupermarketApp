@@ -27,6 +27,12 @@ const LoginReg = require('./models/LoginReg');
 const CartController = require('./controllers/CartController');
 const Cart = require('./models/Cart');
 
+const UserController = require('./controllers/UserController');
+const User = require('./models/User');
+
+const OrdersController = require('./controllers/OrdersController');
+const Orders = require('./models/Orders');
+
 // For session management and flash messages
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
@@ -77,8 +83,20 @@ app.get('/logout', (req, res) => {
 });
 
 //USER DASHBOARD----------------------------------------------------------------------------------------------------------------------------------
-app.get('/',checkAuthenticated, (req, res) => {
+app.get('/', (req, res) => {
   return SupermarketController.userdashboardlist(req, res);
+});
+
+app.get('/viewProfile',checkAuthenticated, (req, res) => {
+  return UserController.viewById(req, res);
+});
+
+app.get('/editProfile',checkAuthenticated, (req, res) => {
+  return UserController.editView(req, res);
+});
+
+app.post('/editProfile',checkAuthenticated, (req, res) => {
+  return UserController.editbyId(req, res);
 });
 
 //CART HANDLER-----------------------------------------------------------------------------------------------------------------------------------
@@ -101,6 +119,15 @@ app.get('/cartdelete/:id',checkAuthenticated, (req, res) => {
 app.get('/checkout',checkAuthenticated, (req, res) => {
   return CartController.checkout(req, res);
 });
+
+app.get('/clearcart',checkAuthenticated, (req, res) => {
+  return CartController.deleteAllFromCart(req, res);
+});
+
+app.get('/invoice/:orderId', checkAuthenticated, (req, res) => {
+  return OrdersController.viewInvoice(req, res);
+});
+
 
 //ADMIN DASHBOARD----------------------------------------------------------------------------------------------------------------------------------
 // List products (home)
@@ -143,6 +170,22 @@ app.post('/editProduct/:id',checkAuthenticated, checkAuthorised(['admin']), uplo
 // Delete product
 app.get('/deleteProduct/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
   return SupermarketController.delete(req, res);
+});
+
+app.get('/adminViewUsers',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return UserController.viewAll(req, res);
+});
+
+app.get('/editUser/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return UserController.editViewAdmin(req, res);
+});
+
+app.post('/editUser/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return UserController.editbyIdAdmin(req, res);
+});
+
+app.get('/banuser/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return UserController.banById(req, res);
 });
 
 const PORT = process.env.PORT || 3000;

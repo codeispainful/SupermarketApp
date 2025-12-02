@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <title>User Management | Supermarket App</title>
+</head>
+
+<body>
+
+    <!-- Admin Navbar -->
+    <%- include('partials/adminnavbar') %>
+
+        <!-- Flash Messages -->
+        <% if (success && success.length> 0) { %>
+            <div class="alert alert-success text-center">
+                <%= success %>
+            </div>
+            <% } %>
+
+                <% if (error && error.length> 0) { %>
+                    <div class="alert alert-danger text-center">
+                        <%= error %>
+                    </div>
+                    <% } %>
+
+                        <div class="container mt-4">
+                            <div class="text-center mb-4">
+                                <h2>All Users in Supermarket App Database</h2>
+                            </div>
+
+                            <table class="table table-hover table-sm text-center">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>User ID</th>
+                                        <th>Username</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Role</th>
+                                        <th>Banned</th>
+                                        <th>Edit</th>
+                                        <th>Ban</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% users.forEach(user=> { %>
+                                        <tr>
+                                            <td>
+                                                <%= user.userid %>
+                                            </td>
+                                            <td>
+                                                <%= user.username %>
+                                            </td>
+                                            <td>
+                                                <%= user.email %>
+                                            </td>
+                                            <td>
+                                                <%= user.contact %>
+                                            </td>
+                                            <td>
+                                                <%= user.role %>
+                                            </td>
+                                            <td>
+                                                <%= user.banned==1 ? 'Yes' : 'No' %>
+                                            </td>
+                                            <td>
+                                                <a href="/editUser/<%= user.userid %>"
+                                                    class="btn btn-sm btn-primary">Edit</a>
+                                            </td>
+                                            <td>
+                                                <a href="/banUser/<%= user.userid %>" class="btn btn-sm btn-danger"
+                                                    onclick="return confirm('Are you sure you want to ban this user?')">
+                                                    Ban
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+
+</body>
+
+</html>

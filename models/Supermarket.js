@@ -11,7 +11,7 @@ const Supermarket = {
    * @param {Function} callback (err, rows)
    */
   getAll(params, callback) {
-    let sql = 'SELECT productId, productName, quantity, price, image, category FROM products';
+    let sql = 'SELECT productId, productName, quantity, price, image, category, hidden FROM products';
     const values = [];
 
     if (params && params.search) {
@@ -37,7 +37,7 @@ const Supermarket = {
    * @param {Function} callback (err, row)
    */
   getById(productId, callback) {
-    const sql = 'SELECT productId, productName, quantity, price, image, category FROM products WHERE productId = ?';
+    const sql = 'SELECT productId, productName, quantity, price, image, hidden, category FROM products WHERE productId = ?';
     db.query(sql, [productId], (err, results) => {
       if (err) return callback(err);
       callback(null, results[0] || null);
@@ -50,13 +50,14 @@ const Supermarket = {
    * @param {Function} callback (err, result)
    */
   add(product, callback) {
-    const sql = 'INSERT INTO products (productName, quantity, price, image, category) VALUES (?, ?, ?, ?, ?)';
+    const sql = 'INSERT INTO products (productName, quantity, price, image, category, hidden) VALUES (?, ?, ?, ?, ?, ?)';
     const params = [
       product.productName || null,
       product.quantity != null ? product.quantity : null,
       product.price != null ? product.price : null,
       product.image || null,
       product.category || null,
+      product.hidden || null,
     ];
     db.query(sql, params, (err, result) => {
       if (err) return callback(err);
@@ -94,6 +95,10 @@ const Supermarket = {
       fields.push('category = ?');
       values.push(product.category);
     }
+    if (product.hidden !== undefined) {
+      fields.push('hidden = ?');
+      values.push(product.hidden);
+    }
 
     if (fields.length === 0) {
       return callback(null, { affectedRows: 0, message: 'No fields to update' });
@@ -114,7 +119,7 @@ const Supermarket = {
    * @param {Function} callback (err, result)
    */
   delete(productId, callback) {
-    const sql = 'DELETE FROM products WHERE productId = ?';
+    const sql = 'UPDATE products SET hidden = 1 WHERE productId = ?';
     db.query(sql, [productId], callback);
   },
   

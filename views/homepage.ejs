@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supermarket | Products</title>
 
     <!-- BOOTSTRAP -->
@@ -11,111 +11,175 @@
 
     <style>
         body {
-            background-color: #f7f7f7;
+            background-color: #f3f6f1;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        .navbar {
+            background: #ffffff;
+            border-bottom: 3px solid #4caf50;
         }
 
         .navbar-brand {
             font-weight: bold;
-            font-size: 1.4rem;
+            font-size: 1.5rem;
+            color: #2e7d32 !important;
         }
 
         .product-card {
-            transition: transform .15s ease-in-out;
+            border: 1px solid #dce3dd;
+            border-radius: 8px;
+            transition: transform .18s ease-in-out, box-shadow .2s;
+            background-color: #ffffff;
         }
 
         .product-card:hover {
-            transform: scale(1.02);
+            transform: translateY(-3px);
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.12);
         }
 
         .product-img {
             height: 180px;
             object-fit: contain;
-            background: #fff;
+            background: #ffffff;
             padding: 10px;
+            border-bottom: 1px solid #eee;
         }
 
         .category-badge {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
+            background-color: #4caf50 !important;
+        }
+
+        .footer {
+            margin-top: 50px;
+            background: #4caf50;
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .search-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-wrapper form {
+            width: 60%;
+            min-width: 260px;
         }
     </style>
 </head>
 
 <body>
-
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-light bg-white shadow-sm px-4">
+    <!-- Navbar -->
+    <nav class="navbar navbar-light shadow-sm px-4 d-flex align-items-center">
         <a class="navbar-brand" href="/">🛒 Supermarket</a>
 
-        <form class="d-flex" method="get" action="/">
-            <input name="search" class="form-control me-2" type="search" placeholder="Search products...">
-            <button class="btn btn-primary">Search</button>
+        <div class="search-wrapper">
+            <form class="d-flex" method="get" action="/">
+                <input name="search" class="form-control me-2" type="search" placeholder="Search fresh products..." value="<%= search || '' %>">
+                <button class="btn btn-success">Search</button>
+                <a href="/" class="btn btn-outline-secondary ms-2">Reset</a>
+            </form>
+        </div>
 
-            <a href="/" class="btn btn-secondary ms-2">Reset</a>
-        </form>
-        <div class="ms-auto d-flex">
-            <a href="/viewcart" class="btn btn-outline-success me-2">🛒 Cart</a>
-            <a href="/logout" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to logout?')">Logout</a>
+        <div class="ms-auto d-flex gap-2">
+            <% if (user) { %>
+                <a href="/viewcart" class="btn btn-outline-success">🛒 Cart</a>
+                <a href="/logout" class="btn btn-outline-danger"
+                    onclick="return confirm('Are you sure you want to logout?')">Logout</a>
+                <a href="/viewProfile" class="btn btn-outline-primary">👤 Profile</a>
+            <% } else { %>
+                <a href="/loginUser" class="btn btn-outline-primary">Login</a>
+                <a href="/register" class="btn btn-outline-success">Sign Up</a>
+            <% } %>
         </div>
     </nav>
-    <% if (success && success.length> 0) { %>
-        <div class="alert alert-success">
-            <%= success %>
-        </div>
-        <% } %>
-            <% if (error && error.length> 0) { %>
-                <div class="alert alert-danger">
-                    <%= error %>
-                </div>
-                <% } %>
-                    <div class="container mt-4">
-                        <h2 class="text-center mb-4">Available Products</h2>
-                        <div class="row g-4">
-                            <% if (products.length===0) { %>
-                                <p class="text-center text-muted">No products found.</p>
+
+    <!-- Flash messages -->
+    <% if (success && success.length>0) { %>
+        <div class="alert alert-success text-center m-0"><%= success %></div>
+    <% } %>
+    <% if (error && error.length>0) { %>
+        <div class="alert alert-danger text-center m-0"><%= error %></div>
+    <% } %>
+
+    <div class="container mt-4">
+        <h2 class="text-center mb-4 fw-bold" style="color:#2e7d32;">Fresh Deals & Products</h2>
+
+        <!-- Filters: combined form -->
+        <form method="get" class="d-flex justify-content-between mb-4 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <label for="sort" class="fw-bold">Sort by Price:</label>
+                <select name="sort" id="sort" class="form-select" onchange="this.form.submit()">
+                    <option value="">Default</option>
+                    <option value="asc" <%= sort==='asc' ? 'selected' : '' %>>Low to High</option>
+                    <option value="desc" <%= sort==='desc' ? 'selected' : '' %>>High to Low</option>
+                </select>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label for="category" class="fw-bold">Filter by Category:</label>
+                <select name="category" id="category" class="form-select" onchange="this.form.submit()">
+                    <option value="">All</option>
+                    <% const categories=[...new Set(products.map(p=> p.category).filter(c => c))]; %>
+                    <% categories.forEach(cat=> { %>
+                        <option value="<%= cat %>" <%= selectedCategory===cat ? 'selected' : '' %>><%= cat %></option>
+                    <% }) %>
+                </select>
+            </div>
+        </form>
+
+        <!-- Products Grid -->
+        <% const visibleProducts = products.filter(p=>p.hidden != 1); %>
+        <% if (visibleProducts.length === 0) { %>
+            <p class="text-center mt-4 text-muted">No products found.</p>
+        <% } else { %>
+            <div class="row g-4">
+                <% visibleProducts.forEach(product=> {
+                    const inCart = product.cartQuantity || 0;
+                %>
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                    <div class="card product-card shadow-sm <%= product.quantity===0 ? 'opacity-50' : '' %>">
+                        <img src="/images/<%= product.image || 'placeholder.png' %>" class="card-img-top product-img"
+                            alt="<%= product.productName %>">
+
+                        <div class="card-body text-center">
+                            <h5 class="card-title fw-bold"><%= product.productName %></h5>
+                            <span class="badge category-badge mb-2"><%= product.category || 'Uncategorized' %></span>
+                            <p class="mt-2 mb-1 fw-bold text-secondary">Stock: <%= product.quantity %></p>
+                            <p class="mt-2 mb-1 fw-bold text-success">SGD <%= product.price.toFixed(2) %></p>
+
+                            <% if (user) { %>
+                                <% if (product.quantity===0) { %>
+                                    <span class="badge bg-danger w-100 py-2">OUT OF STOCK</span>
+                                <% } else { %>
+                                    <form action="/addtocart/<%= product.productId %>" method="POST">
+                                        <input type="number" name="quantity" class="form-control mb-2" min="1"
+                                            max="<%= product.quantity %>" value="1">
+                                        <button type="submit" class="btn btn-<%= inCart>0 ? 'warning' : 'success' %> w-100">
+                                            <%= inCart>0 ? 'Update Cart' : 'Add to Cart' %>
+                                        </button>
+                                    </form>
                                 <% } %>
-                                    <% products.forEach(product=> {
-                                        const inCart = product.cartQuantity || 0;
-                                        %>
-                                        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                                            <div
-                                                class="card product-card shadow-sm <%= product.quantity === 0 ? 'opacity-50' : '' %>">
-                                                <img src="/images/<%= product.image || 'placeholder.png' %>"
-                                                    class="card-img-top product-img" alt="<%= product.productName %>">
-                                                <div class="card-body text-center">
-                                                    <h5 class="card-title">
-                                                        <%= product.productName %>
-                                                    </h5>
-                                                    <span class="badge bg-secondary category-badge">
-                                                        <%= product.category || "Uncategorized" %>
-                                                    </span>
-                                                    <p class="mt-2 mb-1 fw-bold">QTY: <%= product.quantity %>
-                                                    </p>
-                                                    <p class="mt-2 mb-1 fw-bold">SGD <%= product.price.toFixed(2) %>
-                                                    </p>
-                                                    <% if (product.quantity===0) { %>
-                                                        <!-- OUT OF STOCK MODE -->
-                                                        <span class="badge bg-danger w-100 py-2">OUT OF STOCK</span>
-                                                        <% } else { %>
-                                                            <!-- NORMAL MODE -->
-                                                            <form action="/addtocart/<%= product.productId %>"
-                                                                method="POST">
-                                                                <input type="number" name="quantity"
-                                                                    class="form-control mb-2" min="1"
-                                                                    max="<%= product.quantity %>" value="1">
-                                                                <button type="submit"
-                                                                    class="btn btn-<%= inCart > 0 ? 'warning' : 'success' %> w-100">
-                                                                    <%= inCart> 0 ? 'Update Cart' : 'Add to Cart' %>
-                                                                </button>
-                                                            </form>
-                                                            <% } %>
-                                                </div>
-                                            </div>
-                                        </div>
-                            <% }) %>
+                            <% } else { %>
+                                <a href="/loginUser" class="btn btn-outline-primary w-100">Login to Buy</a>
+                            <% } %>
                         </div>
                     </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+                </div>
+                <% }) %>
+            </div>
+        <% } %>
+    </div>
 
+    <div class="footer">
+        © <%= new Date().getFullYear() %> Supermarket — Freshness Delivered Daily
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

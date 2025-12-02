@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile | Supermarket</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+
+        .profile-container {
+            max-width: 900px;
+            margin: auto;
+            margin-top: 40px;
+        }
+
+        .card-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: #2c7a7b;
+            margin-bottom: 15px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .info-value {
+            color: #2d3748;
+        }
+
+        .password-mask {
+            letter-spacing: 3px;
+            font-size: 1.1rem;
+        }
+
+        .btn-toggle {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-toggle:hover {
+            background: #5a6268;
+        }
+
+        .purchase-table td {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <%- include('partials/profilenavbar') %>
+
+    <div class="profile-container">
+
+        <!-- Profile Information -->
+        <div class="card-section">
+            <h3 class="section-title">Your Profile</h3>
+            <p class="text-muted">Manage your account information</p>
+
+            <div class="mb-3">
+                <span class="info-label">Username:</span>
+                <p class="info-value"><%= user.username %></p>
+            </div>
+
+            <div class="mb-3">
+                <span class="info-label">Email:</span>
+                <p class="info-value"><%= user.email %></p>
+            </div>
+
+            <div class="mb-3">
+                <span class="info-label">Phone Number:</span>
+                <p class="info-value"><%= user.contact %></p>
+            </div>
+
+            <!-- Password Section -->
+            <div class="mb-3">
+                <span class="info-label">Password:</span>
+
+                <p id="maskedPassword" class="info-value password-mask">
+                    ************
+                </p>
+
+                <p id="actualPassword" class="info-value d-none">
+                    <%= user.password %>
+                </p>
+
+                <button class="btn btn-toggle btn-sm mt-1" onclick="togglePassword()">Show Password</button>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="/editprofile" class="btn btn-primary px-4">Edit Profile</a>
+            </div>
+        </div>
+
+        <!-- Purchase History -->
+        <div class="card-section">
+            <h3 class="section-title">Purchase History</h3>
+
+            <% if (!history || history.length === 0) { %>
+                <p class="text-muted mb-0">No past purchases found.</p>
+            <% } else { %>
+
+                <table class="table table-striped purchase-table mt-3">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Total (SGD)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <% history.forEach(order => { %>
+                            <tr>
+                                <td><strong><%= order.orderid %></strong></td>
+                                <td><%= new Date(order.order_datetime).toLocaleString() %></td>
+                                <td>SGD <%= order.total_amount.toFixed(2) %></td>
+                                <td>
+                                    <a href="/invoice/<%= order.orderid %>" class="btn btn-sm btn-outline-primary">
+                                        View Invoice
+                                    </a>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const masked = document.getElementById('maskedPassword');
+            const actual = document.getElementById('actualPassword');
+            const btn = event.target;
+
+            if (actual.classList.contains('d-none')) {
+                masked.classList.add('d-none');
+                actual.classList.remove('d-none');
+                btn.textContent = "Hide Password";
+            } else {
+                actual.classList.add('d-none');
+                masked.classList.remove('d-none');
+                btn.textContent = "Show Password";
+            }
+        }
+    </script>
+
+</body>
+
+</html>

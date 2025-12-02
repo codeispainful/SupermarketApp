@@ -10,12 +10,14 @@ const LoginRegController = {
         };
 
         LoginReg.add(userdetails, (err, result) => {
+            if (!result) {
+            // username already exists case
+                req.flash('error', 'Username already exists');
+                return res.redirect('/registerUser');
+            }
             if (err) return res.status(500).json({ error: 'Database error', details: err.message });
             // If form submit, redirect to list; otherwise return created resource
-            if (req.headers.accept && req.headers.accept.includes('text/html')) {
-                return res.redirect('/login');
-            }
-            return res.status(201).json({ insertId: result.insertId, ...userdetails });
+            return res.redirect('/loginUser');
         });
     },
     login(req, res) {

@@ -30,6 +30,10 @@ const Cart = {
         const sql = 'DELETE FROM cart WHERE userId = ? AND productId = ?';
         db.query(sql, [userId, productId], callback);
     },
+    deleteAll(userId, callback){
+        const sql = 'DELETE FROM cart WHERE userId = ?';
+        db.query(sql, [userId], callback);
+    },
     checkout(userId, callback) {
         const sql = 'DELETE FROM cart WHERE userId = ?';
         db.query(sql, [userId], callback);
@@ -41,5 +45,37 @@ const Cart = {
             callback(null, results);
         });
     },
+    deleteByProductId(productId, callback) {
+        const sql = 'DELETE FROM cart WHERE productId = ?';
+        db.query(sql, [productId], callback);
+    },
+    createOrder(userId, cartItems, callback) {
+        // Generate new orderId
+        db.query('SELECT IFNULL(MAX(orderid),0)+1 AS newOrderId FROM orders', (err, results) => {
+            if (err) return callback(err);
+            const orderId = results[0].newOrderId;
+            const now = new Date();
+            const values = cartItems.map(item => [
+                orderId,
+                userId,
+                item.productId,
+                item.quantity,
+                item.quantity * item.price, // subtotal
+                now
+            ]);
+            const sql = 'INSERT INTO orders (orderid, userid, productid, quantity, subtotal, order_datetime) VALUES ?';
+            db.query(sql, [values], (err, result) => {
+                if (err) return callback(err);
+                callback(null, orderId);
+            });
+        });
+    },
+    getOrderById(orderId, callback) {
+        const sql = 'SELECT * FROM orders WHERE orderid = ?';
+        db.query(sql, [orderId], (err, results) => {
+            if (err) return callback(err);
+            callback(null, results);
+        });
+    }
 }
 module.exports = Cart;

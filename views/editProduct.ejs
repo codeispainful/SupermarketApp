@@ -28,6 +28,11 @@
                 <label for="category">Category:</label><br>
                 <input type="text" id="category" name="category" value = "<%= product.category %>" required><br><br>
 
+                <label for="hidden">Hidden:</label><br>
+                <input type="hidden" name="hidden" value="0">
+                <input type="checkbox" id="hidden" name="hidden" value="1" <%= product.hidden == 1 ? 'checked' : '' %>><br><br>
+
+
                 <label for="image">Current Image:</label><br>
                 <input type="text" name='currentImage' value = <%=product.image%> readonly>
                 <img src = "/images/<%= product.image %>" width="20%"><br><br>
