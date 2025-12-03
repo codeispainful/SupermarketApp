@@ -6,11 +6,10 @@ const Cart = {
         db.query(sqlcheck, [userId, productId], (err, results) => {
             if (err) return callback(err);
             if (results.length > 0) {
-                const newQty = results[0].quantity + qty;
                 const sqlUpdate = 'UPDATE cart SET quantity = ? WHERE userId = ? AND productId = ?';
-                db.query(sqlUpdate, [newQty, userId, productId], (err, result) => {
+                db.query(sqlUpdate, [qty, userId, productId], (err, result) => {
                     if (err) return callback(err);
-                    callback(null, { updated: true, userId, productId, quantity: newQty });
+                    callback(null, { updated: true, userId, productId, quantity: qty });
                 });
             } else {
                 const sql = 'INSERT INTO cart (userId, productId, quantity) VALUES (?, ?, ?)';

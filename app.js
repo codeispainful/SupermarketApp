@@ -33,6 +33,9 @@ const User = require('./models/User');
 const OrdersController = require('./controllers/OrdersController');
 const Orders = require('./models/Orders');
 
+const ReviewController = require('./controllers/ReviewController');
+const Review = require('./models/Review');
+
 // For session management and flash messages
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
@@ -99,6 +102,30 @@ app.post('/editProfile',checkAuthenticated, (req, res) => {
   return UserController.editbyId(req, res);
 });
 
+app.get('/productDetails/:id', (req, res) => {
+  return SupermarketController.getByIdDetails(req, res);
+});
+
+app.post('/addReview/:id',checkAuthenticated, (req, res) => {
+  return ReviewController.addReview(req, res);
+});
+
+app.get('/myReviews',checkAuthenticated, (req, res) => {
+  return ReviewController.getReviewbyUserId(req, res);
+});
+
+app.get('/editReview/:id', checkAuthenticated, (req, res) => {
+  return ReviewController.getEditReview(req, res);
+});
+
+app.post('/editReview/:id', checkAuthenticated, (req, res) => {
+  return ReviewController.editReviewById(req, res);
+});
+
+app.get('/deleteReview/:id', checkAuthenticated, (req, res) => {
+  return ReviewController.deleteReview(req, res);
+});
+
 //CART HANDLER-----------------------------------------------------------------------------------------------------------------------------------
 app.post('/addtocart/:id',checkAuthenticated, (req, res) => {
   return CartController.addToCart(req, res);
@@ -157,19 +184,20 @@ app.post('/addProduct',checkAuthenticated, checkAuthorised(['admin']), upload.si
   return SupermarketController.add(req, res);
 });
 
-// Render edit product form
 app.get('/editProduct/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
   return SupermarketController.getById(req, res);
 });
 
-// Handle update product (with optional file upload)
 app.post('/editProduct/:id',checkAuthenticated, checkAuthorised(['admin']), upload.single('image'), (req, res) => {
   return SupermarketController.update(req, res);
 });
 
-// Delete product
 app.get('/deleteProduct/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
   return SupermarketController.delete(req, res);
+});
+
+app.get('/unhideProduct/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return SupermarketController.unhide(req, res);
 });
 
 app.get('/adminViewUsers',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
@@ -186,6 +214,14 @@ app.post('/editUser/:id',checkAuthenticated, checkAuthorised(['admin']), (req, r
 
 app.get('/banuser/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
   return UserController.banById(req, res);
+});
+
+app.get('/unbanuser/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return UserController.unbanById(req, res);
+});
+
+app.get('/adminOrders',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return OrdersController.viewAll(req, res);
 });
 
 const PORT = process.env.PORT || 3000;

@@ -1,4 +1,5 @@
 const { viewById } = require('../controllers/SupermarketController');
+const { unbanById } = require('../controllers/UserController');
 const db = require('../db');
 
 const User = {
@@ -10,9 +11,17 @@ const User = {
         });
     },
 
-    viewAll(callback) {
-        const sql = 'SELECT * FROM users';
-        db.query(sql, (err, results) => {
+    viewAll(params, callback) {
+        let sql = 'SELECT * FROM users';
+        const queryParams = [];
+
+        if (params.search) {
+            sql += ' WHERE username LIKE ? OR email LIKE ? OR contact LIKE ?';
+            const searchTerm = `%${params.search}%`;
+            queryParams.push(searchTerm, searchTerm, searchTerm);
+        }
+
+        db.query(sql, queryParams, (err, results) => {
             if (err) return callback(err);
             callback(null, results);
         });
@@ -20,6 +29,11 @@ const User = {
 
     banById(userId, callback) {
         const sql = 'UPDATE users SET banned = 1 WHERE userId = ?';
+        db.query(sql, [userId], callback);
+    },
+
+    unbanById(userId, callback) {
+        const sql = 'UPDATE users SET banned = 0 WHERE userId = ?';
         db.query(sql, [userId], callback);
     },
 

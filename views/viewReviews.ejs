@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Reviews | Supermarket</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f3f6f1;
+            font-family: "Segoe UI", sans-serif;
+        }
+        .navbar {
+            background: #ffffff;
+            border-bottom: 3px solid #4caf50;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #2e7d32 !important;
+        }
+        .review-card {
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <%- include('partials/profilenavbar') %>
+
+    <% if (success && success.length>0) { %>
+        <div class="alert alert-success text-center m-0"><%= success %></div>
+    <% } %>
+    <% if (error && error.length>0) { %>
+        <div class="alert alert-danger text-center m-0"><%= error %></div>
+    <% } %>
+
+    <div class="container mt-5">
+        <h2 class="mb-4 text-center">My Reviews</h2>
+        <form action="/myReviews" method="GET" class="col-lg-8 col-md-10 mx-auto">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+
+                <!-- Search by Product Name -->
+                <div class="d-flex align-items-center gap-2 flex-grow-1">
+                    <label for="search" class="form-label mb-0 fw-semibold">Search:</label>
+                    <input 
+                        type="text" 
+                        id="search" 
+                        name="search"
+                        class="form-control form-control-sm"
+                        placeholder="Product name..."
+                        value="<%= typeof search !== 'undefined' ? search : '' %>"
+                        style="max-width: 250px;"
+                    >
+                </div>
+
+                <!-- Sort by Date -->
+                <div class="d-flex align-items-center gap-2">
+                    <label for="sort" class="form-label mb-0 fw-semibold">Sort by:</label>
+                    <select id="sort" name="sort" class="form-select form-select-sm">
+                        <option value="desc" <%= sort === "desc" ? "selected" : "" %>>Newest</option>
+                        <option value="asc" <%= sort === "asc" ? "selected" : "" %>>Oldest</option>
+                    </select>
+                </div>
+
+                <!-- Submit -->
+                <button class="btn btn-success btn-sm">Apply</button>
+
+            </div>
+        </form>
+        <% if (reviews && reviews.length > 0) { %>
+            <div class="row g-3">
+                <% reviews.forEach(review => { %>
+                    <div class="col-lg-8 col-md-10 mx-auto">
+                        <div class="card shadow-sm p-3 review-card">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold"><%= review.title %></h5>
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    Product: <%= review.product_name %> — 
+                                    <%= new Date(review.created_at).toLocaleDateString() %>
+                                </h6>
+                                <p class="mb-1">
+                                    Rating: 
+                                    <% for(let i=0; i<review.rating; i++) { %>★<% } %>
+                                    <% for(let i=review.rating; i<5; i++) { %>☆<% } %>
+                                </p>
+                                <p class="card-text"><%= review.description %></p>
+                                <a href="/productDetails/<%= review.productid %>" class="btn btn-outline-success btn-sm">View Product</a>
+                                <a href="/editReview/<%= review.reviewid %>" class="btn btn-outline-primary btn-sm">Edit Review</a>
+                                <a 
+                                    href="/deleteReview/<%= review.reviewid %>" 
+                                    class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('Are you sure you want to delete this review?')">
+                                    Delete
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="alert alert-info text-center">
+                You haven't reviewed any products yet.
+            </div>
+        <% } %>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -30,6 +30,10 @@
                     <a class="nav-link" href="/adminViewUsers">User Management</a>
                 </li>
 
+                <li class="nav-item ms-2">
+                    <a class="nav-link" href="/adminOrders">Order Management</a>
+                </li>
+
             </ul>
         </div>
 
@@ -65,6 +69,7 @@
           <table class="table table-hover small text-center">
             <thead>
               <tr>
+                <th width="50">Product Id</th>
                 <th width="100">Product Name</th>
                 <th width="100">Product Image</th>
                 <th width="50">Quantity</th>
@@ -73,17 +78,31 @@
                 <th width='50'>Category</th>
                 <th width='50'>Edit</th>
                 <th width='50'>Hide</th>
+                <th width='50'>Unhide</th>
               </tr>
             </thead>
             <tbody>
               <% for(let i=0; i < products.length; i++) { %>
                 <tr>
+                  <td><%= products[i].productId %></td>
                   <td><a href="/product/<%= products[i].productId %>">
                       <%= products[i].productName %>
                     </a></td> <!--<a href="/product/... allows the handler to grab the id-->
                   <td><img src="images/<%= products[i].image%>" width="20%"></td>
                   <td>
-                    <%= products[i].quantity %>
+                    <% if (products[i].quantity < 30) { %>
+                      <span class="badge bg-danger">
+                        <%= products[i].quantity %>
+                      </span>
+                      <% } else if (products[i].quantity < 200) { %>
+                        <span class="badge bg-warning text-dark">
+                          <%= products[i].quantity %>
+                        </span>
+                      <% } else { %>
+                        <span class="badge bg-success">
+                          <%= products[i].quantity %>
+                        </span>
+                      <% } %>
                   </td>
                   <td>
                     <%= products[i].price.toFixed(2) %>
@@ -97,6 +116,8 @@
                   <td><a href="/editProduct/<%= products[i].productId %>">Edit</a></td>
                   <td><a href="/deleteProduct/<%= products[i].productId %>"
                       onclick="return confirm('Are you sure you want to hide this product?')">Hide</a></td>
+                  <td><a href="/unhideProduct/<%= products[i].productId %>"
+                      onclick="return confirm('Are you sure you want to unhide this product?')">Unhide</a></td>
                 </tr>
                 <% } %>
             </tbody>

@@ -1,5 +1,7 @@
 const Supermarket = require('../models/Supermarket');
 const Cart = require('../models/Cart');
+const Orders = require('../models/Orders');
+const Review = require('../models/Review');
 
 /**
  * Controller for products (Supermarket).
@@ -64,6 +66,8 @@ userdashboardlist(req, res) {
             filteredProducts.sort((a, b) => b.price - a.price);
         }
 
+        const allCategories = [...new Set(products.map(p => p.category).filter(c => c))];
+
         if (userId) {
             // Only get cart if user is logged in
             Cart.getUserCart(userId, (err, cartItems) => {
@@ -83,7 +87,8 @@ userdashboardlist(req, res) {
                     sort,
                     selectedCategory,
                     search: params.search || '', 
-                    user
+                    user,
+                    categories: allCategories
                 });
             });
         } else {
@@ -93,7 +98,8 @@ userdashboardlist(req, res) {
                 sort,
                 selectedCategory,
                 search: params.search || '', 
-                user
+                user,
+                categories: allCategories
             });
         }
     });
@@ -114,6 +120,47 @@ userdashboardlist(req, res) {
       if (err) return res.status(500).json({ error: 'Database error', details: err.message });
       if (!product) return res.status(404).json({ error: 'Product not found' });
       return res.render('editProduct', { product });
+    });
+  },
+
+  getByIdDetails(req, res) {
+    const id = req.params.id || req.params.productId;
+    const user = req.session.user || null;
+    const ratingFilter = req.query.rating || 'all';
+    const sortOrder = req.query.sort || 'newest';
+
+    Supermarket.getById(id, (err, product) => {
+        if (err) return res.status(500).json({ error: 'Database error', details: err.message });
+        if (!product) return res.status(404).json({ error: 'Product not found' });
+
+        Cart.getUserCart(user ? user.userId : null, (cartErr, cartItems) => {
+            if (cartErr) return res.status(500).json({ error: 'Cart error', details: cartErr.message });
+
+            let cartQuantity = 0;
+            if (cartItems && product) {
+                const cartItem = cartItems.find(item => item.productId === product.productId);
+                if (cartItem) cartQuantity = cartItem.quantity;
+            }
+            product.cartQuantity = cartQuantity;
+
+            Orders.orderChecker(user ? user.userId : null, product.productId, (orderErr, hasOrdered) => {
+                if (orderErr) return res.status(500).json({ error: 'Order error', details: orderErr.message });
+                product.hasOrdered = hasOrdered;
+
+                Review.reviewChecker(product.productId, user ? user.userId : null, (reviewErr, hasReviewed) => {
+                    if (reviewErr) return res.status(500).json({ error: 'Review error', details: reviewErr.message });
+                    product.hasReviewed = hasReviewed;
+
+                    Review.getAllbyProductId(product.productId, ratingFilter, sortOrder, (getReviewErr, reviews) => {
+                        if (getReviewErr) return res.status(500).json({ error: 'Get Reviews error', details: getReviewErr.message });
+                        product.reviews = reviews;
+
+                        // Render page with reviews already filtered and sorted
+                        return res.render('productDetails', { product, user, ratingFilter, sortOrder });
+                    });
+                });
+            });
+        });
     });
   },
 
@@ -196,7 +243,15 @@ userdashboardlist(req, res) {
         return res.redirect("/adminView");
       });
     });
-  }
+  },
+  unhide(req, res) {
+    const id = req.params.id || req.params.productId;
+    Supermarket.unhide(id, (err, result) => {
+      if (err) return res.status(500).json({ error: 'Database error', details: err.message });
+      req.flash("success", "Product unhidden successfully");
+      return res.redirect('/adminView');
+    });
+  },
 };
 
 module.exports = SupermarketController;

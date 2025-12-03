@@ -122,6 +122,11 @@ const Supermarket = {
     const sql = 'UPDATE products SET hidden = 1 WHERE productId = ?';
     db.query(sql, [productId], callback);
   },
+
+  unhide(productId, callback) {
+    const sql = 'UPDATE products SET hidden = 0 WHERE productId = ?';
+    db.query(sql, [productId], callback);
+  },
   
   getStockById(productId, callback) {
     const sql = "SELECT quantity FROM products WHERE productId = ?";

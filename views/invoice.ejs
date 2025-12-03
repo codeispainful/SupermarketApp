@@ -69,6 +69,7 @@ th, td { padding: 10px; text-align: left; }
         <h3 class="text-center mb-3">🧾 Invoice</h3>
 
         <p><strong>Order ID:</strong> <%= orderId %></p>
+        <p><strong>User ID:</strong> <%= orders[0].userid %></p>
         <p><strong>Order Date:</strong> <%= new Date(orderDatetime).toLocaleString() %></p>
 
         <table class="table table-bordered">
@@ -112,7 +113,11 @@ th, td { padding: 10px; text-align: left; }
         <div class="mt-4 d-flex gap-2 no-print">
             <button class="btn btn-primary" onclick="window.print()">🖨 Print Invoice</button>
             <a href="/viewProfile" class="btn btn-secondary">Back to Profile</a>
+            <% if (user && user.role === 'admin') { %>
+                <a href="/adminView" class="btn btn-warning">Back to Dashboard</a>
+            <% } %>
         </div>
+        
 
     </div>
 </div>

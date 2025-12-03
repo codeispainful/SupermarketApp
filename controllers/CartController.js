@@ -207,6 +207,7 @@ const CartController = {
             });
         });
     },
+    /*
     viewInvoice(req, res) {
         const orderId = req.params.orderId;
         Orders.getOrderById(orderId, (err, orders) => {
@@ -221,5 +222,6 @@ const CartController = {
             });
         });
     }
+    */
 }
 module.exports = CartController;

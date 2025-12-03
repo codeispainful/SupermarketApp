@@ -30,7 +30,10 @@ const LoginReg = {
             if (results.length === 0) return callback({ message: "Invalid username or password" });
             callback(null, results[0]);
         });
-    }
+    },
+    forgetPass(){
+
+    },
 };
 
 module.exports = LoginReg;

@@ -1,14 +1,40 @@
+<style>
+/* Show dropdown on hover */
+.dropdown:hover .dropdown-menu {
+    display: block;
+    margin-top: 0; /* Optional: remove gap */
+}
+</style>
 
 <nav class="navbar navbar-light shadow-sm px-4 d-flex align-items-center bg-white">
-        <a class="navbar-brand" href="/">🛒 Supermarket</a>
+    <a class="navbar-brand" href="/">🛒 Supermarket</a>
 
-        <div class="ms-auto d-flex">
-            <a href="/" class="btn btn-outline-success me-2">🏠 Home</a>
+    <div class="ms-auto d-flex">
+        <a href="/" class="btn btn-outline-success me-2">🏠 Home</a>
+
+        <% if (user) { %>
+            <!-- If logged in -->
             <a href="/viewcart" class="btn btn-outline-success me-2">🛒 Cart</a>
+
             <a href="/logout" class="btn btn-outline-danger me-2"
                 onclick="return confirm('Are you sure you want to logout?')">
                 Logout
             </a>
-            <a href="/viewProfile" class="btn btn-outline-primary me-2">👤 Profile</a>
-        </div>
-    </nav>
+
+            <div class="dropdown me-2">
+                <a href="#" class="btn btn-outline-primary dropdown-toggle" id="profileDropdown" role="button">
+                    👤 Profile
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="profileDropdown">
+                    <li><a class="dropdown-item" href="/viewProfile">View Profile</a></li>
+                    <li><a class="dropdown-item" href="/myReviews">My Reviews</a></li>
+                </ul>
+            </div>
+
+        <% } else { %>
+            <!-- If NOT logged in -->
+            <a href="/loginUser" class="btn btn-outline-primary me-2">Login</a>
+            <a href="/registerUser" class="btn btn-outline-success me-2">Sign Up</a>
+        <% } %>
+    </div>
+</nav>

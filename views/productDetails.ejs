@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supermarket | <%= product.productName %>
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f3f6f1;
+            font-family: "Segoe UI", sans-serif;
+        }
+
+        .navbar {
+            background: #ffffff;
+            border-bottom: 3px solid #4caf50;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #2e7d32 !important;
+        }
+
+        .product-image {
+            max-height: 400px;
+            object-fit: contain;
+            background: #ffffff;
+            border: 1px solid #dce3dd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .stock-low {
+            color: red;
+            font-weight: bold;
+        }
+
+        .stock-medium {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .stock-high {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <% if (success && success.length>0) { %>
+        <div class="alert alert-success text-center m-0"><%= success %></div>
+    <% } %>
+    <% if (error && error.length>0) { %>
+        <div class="alert alert-danger text-center m-0"><%= error %></div>
+    <% } %>
+    <!-- Navbar -->
+    <%- include('partials/profilenavbar') %>
+
+    <div class="container mt-5">
+        <div class="row g-4">
+            <!-- Product Image -->
+            <div class="col-md-6 text-center">
+                <img src="/images/<%= product.image || 'placeholder.png' %>" alt="<%= product.productName %>"
+                    class="product-image">
+            </div>
+
+            <!-- Product Details -->
+            <div class="col-md-6">
+                <h2 class="fw-bold mb-3">
+                    <%= product.productName %>
+                </h2>
+
+                <p class="mb-2">
+                    <strong>Price:</strong> SGD <%= product.price.toFixed(2) %>
+                </p>
+
+                <p class="mb-2">
+                    <strong>Category:</strong>
+                    <%= product.category || 'Uncategorized' %>
+                </p>
+
+                <p class="mb-3">
+                    <strong>Stock:</strong>
+                    <% if (product.quantity < 30) { %>
+                        <span class="stock-low">
+                            <%= product.quantity %> (Low)
+                        </span>
+                        <% } else if (product.quantity <=200) { %>
+                            <span class="stock-medium">
+                                <%= product.quantity %> (Medium)
+                            </span>
+                            <% } else { %>
+                                <span class="stock-high">
+                                    <%= product.quantity %> (High)
+                                </span>
+                                <% } %>
+                </p>
+                
+                <form action="/addtocart/<%= product.productId %>" method="POST" class="cart-form">
+                    <div class="input-group mb-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="changeQty('<%= product.productId %>', -1)">-</button>
+                        <input type="number" id="qty-<%= product.productId %>" name="quantity" class="form-control text-center" min="1"
+                            max="<%= product.quantity %>" value="<%=product.cartQuantity%>">
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                            onclick="changeQty('<%= product.productId %>', 1)">+</button>
+                    </div>
+                    <button type="submit" class="btn btn-<%= product.cartQuantity>0 ? 'warning' : 'success' %> w-100">
+                        <%= product.cartQuantity>0 ? 'Update Cart' : 'Add to Cart' %>
+                    </button>
+                </form>
+                
+                <a href="/" class="btn btn-outline-secondary mt-3">Back to Products</a>
+            </div>
+        </div>
+    </div>
+    <% if (!user) { %>
+        <div class="text-center mt-3">
+            You need to login to add a review!
+        </div>
+        <% } else { %>
+            <% if (!product.hasOrdered) { %>
+                <div class="container mt-3">
+                        <div class="row justify-content-center">
+                            <div class="col-md-6">
+                                <div class="alert alert-warning text-center">
+                                    You have not ordered this product.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            <% } else { %>
+                <% if (product.hasReviewed) { %>
+                    <div class="container mt-3">
+                        <div class="row justify-content-center">
+                            <div class="col-md-6">
+                                <div class="alert alert-warning text-center">
+                                    You have already reviewed this product.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% } else {%>
+                    <div class="container mt-5">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8 col-md-10">
+                                <div class="card shadow-sm p-4" style="border-radius: 12px;">
+                                    <h4 class="mb-4 text-center">Add a Review</h4>
+                                    <form action="/addReview/<%= product.productId %>" method="POST">
+                                        <!-- Title -->
+                                        <div class="mb-3">
+                                            <label for="title" class="form-label">Review Title</label>
+                                            <input type="text" name="title" id="title" class="form-control" placeholder="Short summary"
+                                                required>
+                                        </div>
+                
+                                        <!-- Rating -->
+                                        <div class="mb-3">
+                                            <label for="rating" class="form-label">Rating</label>
+                                            <select name="rating" id="rating" class="form-select" required>
+                                                <option value="" disabled selected>Select rating</option>
+                                                <option value="1">1 ★</option>
+                                                <option value="2">2 ★★</option>
+                                                <option value="3">3 ★★★</option>
+                                                <option value="4">4 ★★★★</option>
+                                                <option value="5">5 ★★★★★</option>
+                                            </select>
+                                        </div>
+                
+                                        <!-- Description -->
+                                        <div class="mb-3">
+                                            <label for="description" class="form-label">Review Description</label>
+                                            <textarea name="description" id="description" class="form-control" rows="5"
+                                                placeholder="Share your experience..." required></textarea>
+                                        </div>
+                
+                                        <button type="submit" class="btn btn-success w-100">Submit Review</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+            <% } %>
+        <% } %>
+    <!-- Reviews Section -->
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+
+                <!-- Filter by Rating -->
+                <div class="d-flex align-items-center gap-2">
+                    <label for="filterRating" class="form-label mb-0 fw-semibold">Filter by Rating:</label>
+                    <select id="filterRating" class="form-select form-select-sm" onchange="applyFilterSort()">
+                        <option value="all" <%= ratingFilter==='all'?'selected':'' %>>All</option>
+                        <option value="5" <%= ratingFilter==='5'?'selected':'' %>>5 ★★★★★</option>
+                        <option value="4" <%= ratingFilter==='4'?'selected':'' %>>4 ★★★★</option>
+                        <option value="3" <%= ratingFilter==='3'?'selected':'' %>>3 ★★★</option>
+                        <option value="2" <%= ratingFilter==='2'?'selected':'' %>>2 ★★</option>
+                        <option value="1" <%= ratingFilter==='1'?'selected':'' %>>1 ★</option>
+                    </select>
+                </div>
+
+                <!-- Sort by Date -->
+                <div class="d-flex align-items-center gap-2">
+                    <label for="sortDate" class="form-label mb-0 fw-semibold">Sort by:</label>
+                    <select id="sortDate" class="form-select form-select-sm" onchange="applyFilterSort()">
+                        <option value="newest" <%= sortOrder==='newest'?'selected':'' %>>Newest</option>
+                        <option value="oldest" <%= sortOrder==='oldest'?'selected':'' %>>Oldest</option>
+                    </select>
+                </div>
+
+            </div>
+            <div id="reviewsList">
+                <% if (product.reviews && product.reviews.length> 0) { %>
+                    <% product.reviews.forEach(review=> { %>
+                        <div class="card mb-3 shadow-sm review-item" data-rating="<%= review.rating %>"
+                            data-date="<%= new Date(review.created_at).getTime() %>" style="border-radius: 12px;">
+                            <div class="card-body">
+                                <h5 class="card-title fw-bold">
+                                    <%= review.title %>
+                                </h5>
+                                <h6 class="card-subtitle mb-2 text-muted">
+                                    <%= review.username %> — <%= new Date(review.created_at).toLocaleDateString() %>
+                                </h6>
+                                <p class="mb-1">
+                                    Rating:
+                                    <% for(let i=0; i<review.rating; i++) { %>★<% } %>
+                                            <% for(let i=review.rating; i<5; i++) { %>☆<% } %>
+                                </p>
+                                <p class="card-text">
+                                    <%= review.description %>
+                                </p>
+                            </div>
+                        </div>
+                        <% }) %>
+                            <% } else { %>
+                                <div class="alert alert-info text-center">
+                                    No reviews yet. Be the first to review this product!
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Change +/- buttons
+        function changeQty(productId, delta) {
+            const input = document.getElementById('qty-' + productId);
+            if (!input) return;
+
+            let current = parseInt(input.value) || 1;
+            const min = parseInt(input.min) || 1;
+            const max = parseInt(input.max) || 100;
+
+            current += delta;
+            if (current < min) current = min;
+            if (current > max) current = max;
+
+            input.value = current;
+        }
+        function applyFilterSort() {
+            const rating = document.getElementById('filterRating').value;
+            const sort = document.getElementById('sortDate').value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('rating', rating);
+            url.searchParams.set('sort', sort);
+            window.location.href = url;
+        }
+    </script>
+</body>
+
+</html>

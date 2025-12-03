@@ -28,6 +28,10 @@ const LoginRegController = {
                 req.flash('error', 'Password or username incorrect. Please try again.');
                 return res.redirect('/loginUser');
             }
+            if (result.banned === 1) {
+                req.flash('error', 'This account has been banned, please contact our support team at 1800-123-4567 or email support@supermarket.sg for more information.');
+                return res.redirect('/loginUser');
+            }
             if (!result) {
                 req.flash("error", "Invalid email or password");
                 req.flash("formData", req.body);

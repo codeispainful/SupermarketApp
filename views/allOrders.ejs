@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <title>Supermarket App - Orders</title>
+</head>
+
+<body>
+
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+    <div class="container-fluid">
+
+        <a class="navbar-brand" href="/adminView">Admin Dashboard - Supermarket App</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="collapsibleNavbar">
+            <ul class="navbar-nav">
+
+                <li class="nav-item">
+                    <a class="nav-link" href="/addProduct">Add new product</a>
+                </li>
+
+                <li class="nav-item ms-2">
+                    <a class="nav-link" href="/adminViewUsers">User Management</a>
+                </li>
+
+                <li class="nav-item ms-2">
+                    <a class="nav-link" href="/allOrders">Order Management</a>
+                </li>
+
+            </ul>
+        </div>
+
+        <!-- Search Form -->
+        <form class="d-flex" method="get" action="/allOrders">
+            <input name="search" class="form-control me-2" type="search" placeholder="Search order ID..."
+            value="<%= search || '' %>">
+            <button class="btn btn-primary">Search</button>
+        </form>
+
+        <a href="/allOrders" class="btn btn-secondary ms-2">Reset</a>
+
+        <a href="/logout" class="btn btn-outline-danger ms-2"
+            onclick="return confirm('Are you sure you want to logout?')">
+            Logout
+        </a>
+
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+<% if (success && success.length > 0) { %>
+    <div class="alert alert-success text-center"><%= success %></div>
+<% } %>
+
+<% if (error && error.length > 0) { %>
+    <div class="alert alert-danger text-center"><%= error %></div>
+<% } %>
+
+<div class="container mt-4">
+
+    <div class="text-center">
+        <h2>Customer Orders</h2>
+    </div>
+
+    <br>
+
+    <table class="table table-hover text-center small">
+        <thead>
+            <tr>
+                <th width="100">Order ID</th>
+                <th width="100">User ID</th>
+                <th width="150">Order Date</th>
+                <th width="100">Total Amount (SGD)</th>
+                <th width="50">View Invoice</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        <% if (orders.length === 0) { %>
+            <tr>
+                <td colspan="5" class="text-muted">No orders found.</td>
+            </tr>
+        <% } else { %>
+
+            <% for(let i = 0; i < orders.length; i++) { %>
+                <tr>
+                    <td><%= orders[i].orderid %></td>
+                    <td><%= orders[i].userid %></td>
+                    <td><%= new Date(orders[i].order_datetime).toLocaleString() %></td>
+                    <td><%= orders[i].total_amount.toFixed(2) %></td>
+                    <td>
+                        <a href="/invoice/<%= orders[i].orderid %>" class="btn btn-sm btn-primary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+            <% } %>
+
+        <% } %>
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

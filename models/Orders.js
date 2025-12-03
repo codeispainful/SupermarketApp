@@ -58,6 +58,7 @@ getOrderById(orderId, callback) {
 getOrdersByUser(userId, callback) {
     const sql = `
         SELECT orderid,
+        userid,
         MIN(order_datetime) AS order_datetime,
         SUM(subtotal) AS total_amount
         FROM orders
@@ -66,6 +67,45 @@ getOrdersByUser(userId, callback) {
         ORDER BY order_datetime DESC
     `;
     db.query(sql, [userId], callback);
+},
+getAll(params, callback) {
+    let sql = `
+        SELECT 
+            orderid,
+            userid,
+            MIN(order_datetime) AS order_datetime,
+            SUM(subtotal) AS total_amount
+        FROM orders
+        WHERE 1=1
+    `;
+    const values = [];
+
+    if (params && params.search) {
+        sql += ' AND orderid LIKE ?';
+        values.push(`%${params.search}%`);
+    }
+
+    sql += `
+        GROUP BY orderid, userid
+        ORDER BY order_datetime DESC
+    `;
+
+    db.query(sql, values, callback);
+},
+orderChecker(userid, productid, callback) {
+    const sql = `
+        SELECT COUNT(*) AS count
+        FROM orders
+        WHERE userid = ? AND productid = ?
+    `;
+    db.query(sql, [userid, productid], (err, results) => {
+        if (err) return callback(err);
+        if (results[0].count > 0) {
+            return callback(null, true);
+        } else {
+            return callback(null, false);
+        }
+    });
 },
 }
 

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Orders = require('../models/Orders');
+const Review = require('../models/Review');
 
 const UserController = {
     viewById(req, res) {
@@ -7,15 +8,27 @@ const UserController = {
         User.viewById(userId, (err, user) => {
             if (err) return res.status(500).json({ error: 'Database error', details: err.message });
             if (!user) return res.status(404).json({ error: 'User not found' });
+
             Orders.getOrdersByUser(userId, (err, history) => {
                 if (err) return res.status(500).json({ error: 'Orders error', details: err.message });
+
                 history.forEach(item => {
                     item.total_amount = parseFloat(item.total_amount);
                 });
-                return res.render('viewProfile', {
-                    user,
-                    history
-                });
+
+                // Sort the history based on query
+                const sort = req.query.sort || '';
+                if (sort === 'date_asc') {
+                    history.sort((a, b) => new Date(a.order_datetime) - new Date(b.order_datetime));
+                } else if (sort === 'date_desc') {
+                    history.sort((a, b) => new Date(b.order_datetime) - new Date(a.order_datetime));
+                } else if (sort === 'amount_asc') {
+                    history.sort((a, b) => a.total_amount - b.total_amount);
+                } else if (sort === 'amount_desc') {
+                    history.sort((a, b) => b.total_amount - a.total_amount);
+                }
+
+                return res.render('viewProfile', { user, history, sort });
             });
         });
     },
@@ -41,7 +54,10 @@ const UserController = {
         });
     },
     viewAll(req, res) {
-        User.viewAll((err, users) => {
+        const params = {
+            search: req.query.search || ''
+        };
+        User.viewAll(params, (err, users) => {
             if (err) return res.status(500).json({ error: 'Database error', details: err.message });
             return res.render('viewUsersAdmin', { users });
         });
@@ -51,6 +67,14 @@ const UserController = {
         User.banById(userId, (err, result) => {
             if (err) return res.status(500).json({ error: 'Database error', details: err.message });
             req.flash("success", "User banned successfully");
+            return res.redirect('/adminViewUsers');
+        });
+    },
+    unbanById(req, res) {
+        const userId = req.params.id;
+        User.unbanById(userId, (err, result) => {
+            if (err) return res.status(500).json({ error: 'Database error', details: err.message });
+            req.flash("success", "User unbanned successfully");
             return res.redirect('/adminViewUsers');
         });
     },

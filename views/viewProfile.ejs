@@ -111,12 +111,23 @@
         <!-- Purchase History -->
         <div class="card-section">
             <h3 class="section-title">Purchase History</h3>
-
-            <% if (!history || history.length === 0) { %>
+        
+            <% if (!history || history.length===0) { %>
                 <p class="text-muted mb-0">No past purchases found.</p>
-            <% } else { %>
-
-                <table class="table table-striped purchase-table mt-3">
+                <% } else { %>
+                    <div class="d-flex justify-content-end mb-3">
+                        <form method="get" class="d-flex gap-2">
+                            <label for="sort" class="fw-bold mt-1">Sort by:</label>
+                            <select name="sort" id="sort" class="form-select" onchange="this.form.submit()">
+                                <option value="">Default</option>
+                                <option value="date_asc" <%=sort==='date_asc' ? 'selected' : '' %>>Date: Ascending</option>
+                                <option value="date_desc" <%=sort==='date_desc' ? 'selected' : '' %>>Date: Descending</option>
+                                <option value="amount_asc" <%=sort==='amount_asc' ? 'selected' : '' %>>Total: Ascending</option>
+                                <option value="amount_desc" <%=sort==='amount_desc' ? 'selected' : '' %>>Total: Descending</option>
+                            </select>
+                        </form>
+                    </div>
+                    <table class="table table-striped purchase-table mt-3">
                     <thead>
                         <tr>
                             <th>Order ID</th>

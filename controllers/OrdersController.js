@@ -14,7 +14,7 @@ const OrdersController = {
         const loggedInUserId = req.session.user.userId;
 
         // 🔒 Check if this order belongs to the logged-in user
-        if (orders[0].userid !== loggedInUserId) {
+        if (req.session.user.role !== 'admin' && orders[0].userid !== loggedInUserId) {
             req.flash("error", "Unauthorized access to invoice.");
             return res.redirect('/');
         }
@@ -25,10 +25,28 @@ const OrdersController = {
         });
 
         res.render('invoice', {
+            user: req.session.user,
             orderId,
             orders,
             orderDatetime: orders[0].order_datetime
         });
+    });
+},
+viewAll(req, res) {
+    const params = {
+        search: req.query.search || ''
+    };
+    Orders.getAll(params, (err, orders) => {
+        if (err) {
+            req.flash("error", "Error fetching orders.");
+            return res.redirect('/adminView');
+        }
+
+        orders.forEach(item => {
+            item.total_amount = parseFloat(item.total_amount);
+        });
+
+        res.render('allOrders', { orders, search: params.search });
     });
 },
 }
