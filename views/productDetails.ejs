@@ -75,6 +75,20 @@
                 </h2>
 
                 <p class="mb-2">
+                    <strong>Rating:</strong> 
+                    <% 
+                        const avg = product.averageRating; 
+                        const fullStars = Math.floor(avg);
+                        const halfStar = (avg - fullStars) >= 0.5;
+                        const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+                    %>
+                    <% for(let i = 0; i < fullStars; i++) { %>★<% } %>
+                    <% if(halfStar) { %>☆<% } %>
+                    <% for(let i = 0; i < emptyStars; i++) { %>☆<% } %>
+                    (<%= product.averageRating.toFixed(1) %> / 5)
+                </p>
+
+                <p class="mb-2">
                     <strong>Price:</strong> SGD <%= product.price.toFixed(2) %>
                 </p>
 
@@ -198,11 +212,11 @@
                     <label for="filterRating" class="form-label mb-0 fw-semibold">Filter by Rating:</label>
                     <select id="filterRating" class="form-select form-select-sm" onchange="applyFilterSort()">
                         <option value="all" <%= ratingFilter==='all'?'selected':'' %>>All</option>
-                        <option value="5" <%= ratingFilter==='5'?'selected':'' %>>5 ★★★★★</option>
-                        <option value="4" <%= ratingFilter==='4'?'selected':'' %>>4 ★★★★</option>
-                        <option value="3" <%= ratingFilter==='3'?'selected':'' %>>3 ★★★</option>
-                        <option value="2" <%= ratingFilter==='2'?'selected':'' %>>2 ★★</option>
-                        <option value="1" <%= ratingFilter==='1'?'selected':'' %>>1 ★</option>
+                        <option value="5" <%= ratingFilter==='5'?'selected':'' %>>5 ★★★★★ <p>(<%= product.reviews.filter(r => r.rating === 5).length %>)</p> </option>
+                        <option value="4" <%= ratingFilter==='4'?'selected':'' %>>4 ★★★★ <p>(<%= product.reviews.filter(r => r.rating === 4).length %>)</p> </option>
+                        <option value="3" <%= ratingFilter==='3'?'selected':'' %>>3 ★★★ <p>(<%= product.reviews.filter(r => r.rating === 3).length %>)</p> </option>
+                        <option value="2" <%= ratingFilter==='2'?'selected':'' %>>2 ★★ <p>(<%= product.reviews.filter(r => r.rating === 2).length %>)</p> </option>
+                        <option value="1" <%= ratingFilter==='1'?'selected':'' %>>1 ★ <p>(<%= product.reviews.filter(r => r.rating === 1).length %>)</p> </option>
                     </select>
                 </div>
 

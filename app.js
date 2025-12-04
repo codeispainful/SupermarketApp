@@ -224,5 +224,13 @@ app.get('/adminOrders',checkAuthenticated, checkAuthorised(['admin']), (req, res
   return OrdersController.viewAll(req, res);
 });
 
+app.get('/adminReviews',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return ReviewController.getAllReviewsAdmin(req, res);
+});
+
+app.get('/deleteReviewAdmin/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return ReviewController.deleteReviewAdmin(req, res);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

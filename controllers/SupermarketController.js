@@ -29,81 +29,99 @@ const SupermarketController = {
     });
   },
 
-userdashboardlist(req, res) {
-    const user = req.session.user || null;  // ✅ user is null if not logged in
-    const userId = user ? user.userId : null; // only use if user exists
-    const params = {};
+  userdashboardlist(req, res) {
+      const user = req.session.user || null;
+      const userId = user ? user.userId : null;
+      const params = {};
 
-    // Search
-    if (req.query.search) params.search = req.query.search;
+      // Search
+      if (req.query.search) params.search = req.query.search;
 
-    // Pagination
-    if (req.query.limit) {
-        const n = parseInt(req.query.limit, 10);
-        if (!Number.isNaN(n)) params.limit = n;
-    }
-    if (req.query.offset) {
-        const n = parseInt(req.query.offset, 10);
-        if (!Number.isNaN(n)) params.offset = n;
-    }
+      // Pagination
+      if (req.query.limit) {
+          const n = parseInt(req.query.limit, 10);
+          if (!Number.isNaN(n)) params.limit = n;
+      }
+      if (req.query.offset) {
+          const n = parseInt(req.query.offset, 10);
+          if (!Number.isNaN(n)) params.offset = n;
+      }
 
-    const selectedCategory = req.query.category || null;
-    const sort = req.query.sort || null;
+      const selectedCategory = req.query.category || null;
+      const sort = req.query.sort || null;
 
-    Supermarket.getAll(params, (err, products) => {
-        if (err) return res.status(500).json({ error: 'Database error', details: err.message });
+      // 1. GET PRODUCTS
+      Supermarket.getAll(params, (err, products) => {
+          if (err) return res.status(500).json({ error: 'Database error', details: err.message });
 
-        // Filter by category
-        let filteredProducts = products;
-        if (selectedCategory) {
-            filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
-        }
+          // 2. GET AVG RATINGS
+          Review.getAllAvgRating((err, avgRatings) => {
+              if (err) return res.status(500).json({ error: 'Rating error', details: err.message });
 
-        // Sort by price
-        if (sort === 'asc') {
-            filteredProducts.sort((a, b) => a.price - b.price);
-        } else if (sort === 'desc') {
-            filteredProducts.sort((a, b) => b.price - a.price);
-        }
+              // Map: productId → avgRating
+              const ratingMap = {};
+              avgRatings.forEach(r => {
+                  ratingMap[r.productid] = parseFloat(r.avgRating); 
+              });
 
-        const allCategories = [...new Set(products.map(p => p.category).filter(c => c))];
+              // Attach avg rating to each product
+              let filteredProducts = products.map(p => ({
+                  ...p,
+                  avgRating: ratingMap[p.productId] || 0
+              }));
 
-        if (userId) {
-            // Only get cart if user is logged in
-            Cart.getUserCart(userId, (err, cartItems) => {
-                if (err) return res.status(500).json({ error: 'Cart error', details: err.message });
+              // Filter by category
+              if (selectedCategory) {
+                  filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
+              }
 
-                const cartMap = {};
-                cartItems.forEach(item => {
-                    cartMap[item.productId] = item.quantity;
-                });
+              // Sort by price
+              if (sort === 'asc') {
+                  filteredProducts.sort((a, b) => a.price - b.price);
+              } else if (sort === 'desc') {
+                  filteredProducts.sort((a, b) => b.price - a.price);
+              }
 
-                filteredProducts.forEach(product => {
-                    product.cartQuantity = cartMap[product.productId] || 0;
-                });
+              const allCategories = [...new Set(products.map(p => p.category).filter(c => c))];
 
-                return res.render("homepage", {
-                    products: filteredProducts,
-                    sort,
-                    selectedCategory,
-                    search: params.search || '', 
-                    user,
-                    categories: allCategories
-                });
-            });
-        } else {
-            // For visitors, just render products without cart info
-            return res.render("homepage", {
-                products: filteredProducts,
-                sort,
-                selectedCategory,
-                search: params.search || '', 
-                user,
-                categories: allCategories
-            });
-        }
-    });
-},
+              // 3. INCLUDE CART (if logged in)
+              if (userId) {
+                  Cart.getUserCart(userId, (err, cartItems) => {
+                      if (err) return res.status(500).json({ error: 'Cart error', details: err.message });
+
+                      const cartMap = {};
+                      cartItems.forEach(item => {
+                          cartMap[item.productId] = item.quantity;
+                      });
+
+                      filteredProducts.forEach(product => {
+                          product.cartQuantity = cartMap[product.productId] || 0;
+                      });
+
+                      return res.render("homepage", {
+                          products: filteredProducts,
+                          sort,
+                          selectedCategory,
+                          search: params.search || '',
+                          user,
+                          categories: allCategories
+                      });
+                  });
+              } else {
+                  // Visitor
+                  return res.render("homepage", {
+                      products: filteredProducts,
+                      sort,
+                      selectedCategory,
+                      search: params.search || '',
+                      user,
+                      categories: allCategories
+                  });
+              }
+          });
+      });
+  },
+
 
   viewById(req, res) {
     const id = req.params.id || req.params.productId;
@@ -154,7 +172,9 @@ userdashboardlist(req, res) {
                     Review.getAllbyProductId(product.productId, ratingFilter, sortOrder, (getReviewErr, reviews) => {
                         if (getReviewErr) return res.status(500).json({ error: 'Get Reviews error', details: getReviewErr.message });
                         product.reviews = reviews;
-
+                        const totalRatings = product.reviews.reduce((sum, r) => sum + r.rating, 0);
+                        const avgRating = product.reviews.length > 0 ? (totalRatings / product.reviews.length).toFixed(2) : 0;
+                        product.averageRating = parseFloat(avgRating);  
                         // Render page with reviews already filtered and sorted
                         return res.render('productDetails', { product, user, ratingFilter, sortOrder });
                     });

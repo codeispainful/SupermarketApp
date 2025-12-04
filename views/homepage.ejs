@@ -163,6 +163,19 @@
                             <h5 class="card-title fw-bold">
                                 <%= product.productName %>
                             </h5>
+                            <p class="mb-2">
+                                <strong>Rating:</strong> 
+                                <% 
+                                    const avg = product.avgRating; 
+                                    const fullStars = Math.floor(avg);
+                                    const halfStar = (avg - fullStars) >= 0.5;
+                                    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+                                %>
+                                <% for(let i = 0; i < fullStars; i++) { %>★<% } %>
+                                <% if(halfStar) { %>☆<% } %>
+                                <% for(let i = 0; i < emptyStars; i++) { %>☆<% } %>
+                                (<%= product.avgRating.toFixed(1) %> / 5)
+                            </p>
                             <span class="badge category-badge mb-2">
                                 <%= product.category || 'Uncategorized' %>
                             </span>

@@ -1,4 +1,5 @@
 const Review = require('../models/Review');
+const { getAll } = require('../models/Supermarket');
 
 const ReviewController = {
     addReview(req, res) {
@@ -32,6 +33,20 @@ const ReviewController = {
             }
         });
     },
+
+    deleteReviewAdmin(req, res) {
+        const reviewId = req.params.id;
+        Review.deleteById(reviewId, (error, result) => {
+            if (error) {
+                req.flash("error", "Failed to delete review. Please try again.");
+                res.redirect('/adminReviews');
+            } else {
+                req.flash("success", "Review deleted successfully!");
+                res.redirect('/adminReviews');
+            }
+        });
+    },
+
     getReviewbyUserId(req, res) {
         const user = req.session.user;
         const userId = user.userId;
@@ -66,7 +81,16 @@ const ReviewController = {
             req.flash("success", "Review updated successfully");
             return res.redirect('/myReviews');
         });
-    }
-}
+    },
+
+    getAllReviewsAdmin(req, res) {
+        const search = req.query.search || "";
+        Review.getAllReviews(search,(err, reviews) => {
+            if (err) return res.status(500).json({ error: 'Database error', details: err.message });
+            return res.render('reviewsAdmin', { reviews});
+        });
+    },
+
+};
 
 module.exports = ReviewController;

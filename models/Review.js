@@ -83,6 +83,32 @@ const Review = {
     deleteById(reviewId, callback) {
         const sql = 'DELETE FROM reviews WHERE reviewid = ?';
         db.query(sql, [reviewId], callback);
+    },
+
+    getAllAvgRating(callback) {
+        const sql = 'SELECT AVG(rating) AS avgRating, productid FROM reviews GROUP BY productid';
+        db.query(sql, callback);
+    },
+
+    getAllReviews(search, callback) {
+    let sql = `
+        SELECT 
+        r.*, 
+        u.username AS username,
+        p.productName AS productName
+        FROM reviews r
+        LEFT JOIN users u ON r.userid = u.userid
+        LEFT JOIN products p ON r.productid = p.productId
+    `;
+
+    let params = [];
+
+    if (search) {
+        sql += " WHERE r.reviewid LIKE ?";
+        params.push(`%${search}%`);
+    }
+
+    db.query(sql, params, callback);
     }
 };
 
