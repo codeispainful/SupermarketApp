@@ -207,21 +207,5 @@ const CartController = {
             });
         });
     },
-    /*
-    viewInvoice(req, res) {
-        const orderId = req.params.orderId;
-        Orders.getOrderById(orderId, (err, orders) => {
-            if (err || orders.length === 0) {
-                req.flash("error", "Invoice not found.");
-                return res.redirect('/');
-            }
-            res.render('invoice', {
-                orderId,
-                orders,
-                orderDatetime: orders[0].order_datetime
-            });
-        });
-    }
-    */
 }
 module.exports = CartController;
