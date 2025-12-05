@@ -29,7 +29,6 @@ const CartController = {
                     req.flash("error", `Not enough stock! Available: ${stock}, You already have: ${currentQty} in the cart.`);
                     return res.redirect('/');
                 }
-
                 Cart.addbyid(productId, userId, qtyRequested, (err, result) => {
                     if (err) {
                         req.flash("error", "Database error updating cart.");
@@ -84,7 +83,7 @@ const CartController = {
     },
     updateCart(req, res) {
         const userId = req.session.user.userId;
-        const updates = req.body; // now req.body has keys = productId, values = qty
+        const updates = req.body;
         console.log("Received cart updates:", updates);
 
         if (!updates || Object.keys(updates).length === 0) {

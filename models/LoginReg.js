@@ -18,7 +18,7 @@ const LoginReg = {
                 ];
                 db.query(sql, params, (err, result) => {
                     if (err) return callback(err);
-                    callback(null, { insertId: result.insertId, ...userdetails });
+                    callback(null, result.insertId);
                 });
             }
         });
@@ -30,9 +30,6 @@ const LoginReg = {
             if (results.length === 0) return callback({ message: "Invalid username or password" });
             callback(null, results[0]);
         });
-    },
-    forgetPass(){
-
     },
 };
 

@@ -1,5 +1,4 @@
 const Review = require('../models/Review');
-const { getAll } = require('../models/Supermarket');
 
 const ReviewController = {
     addReview(req, res) {

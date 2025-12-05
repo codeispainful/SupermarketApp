@@ -21,9 +21,9 @@ const Cart = {
         });
     },
     updateQuantity(userId, productId, quantity, callback) {
-    const sql = 'UPDATE cart SET quantity = ? WHERE userId = ? AND productId = ?';
-    console.log("Updating cart:", { userId, productId, quantity });
-    db.query(sql, [quantity, userId, productId], callback);
+        const sql = 'UPDATE cart SET quantity = ? WHERE userId = ? AND productId = ?';
+        console.log("Updating cart:", { userId, productId, quantity });
+        db.query(sql, [quantity, userId, productId], callback);
     },
     deleteById(userId, productId, callback) {
         const sql = 'DELETE FROM cart WHERE userId = ? AND productId = ?';
@@ -49,7 +49,6 @@ const Cart = {
         db.query(sql, [productId], callback);
     },
     createOrder(userId, cartItems, callback) {
-        // Generate new orderId
         db.query('SELECT IFNULL(MAX(orderid),0)+1 AS newOrderId FROM orders', (err, results) => {
             if (err) return callback(err);
             const orderId = results[0].newOrderId;

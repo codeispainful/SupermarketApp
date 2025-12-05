@@ -50,32 +50,27 @@ const SupermarketController = {
       const selectedCategory = req.query.category || null;
       const sort = req.query.sort || null;
 
-      // 1. GET PRODUCTS
+      //GET PRODUCTS
       Supermarket.getAll(params, (err, products) => {
           if (err) return res.status(500).json({ error: 'Database error', details: err.message });
 
-          // 2. GET AVG RATINGS
+          //AVG RATINGS
           Review.getAllAvgRating((err, avgRatings) => {
               if (err) return res.status(500).json({ error: 'Rating error', details: err.message });
-
-              // Map: productId → avgRating
               const ratingMap = {};
               avgRatings.forEach(r => {
                   ratingMap[r.productid] = parseFloat(r.avgRating); 
               });
 
-              // Attach avg rating to each product
               let filteredProducts = products.map(p => ({
                   ...p,
                   avgRating: ratingMap[p.productId] || 0
               }));
 
-              // Filter by category
               if (selectedCategory) {
                   filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
               }
 
-              // Sort by price
               if (sort === 'asc') {
                   filteredProducts.sort((a, b) => a.price - b.price);
               } else if (sort === 'desc') {
@@ -84,7 +79,6 @@ const SupermarketController = {
 
               const allCategories = [...new Set(products.map(p => p.category).filter(c => c))];
 
-              // 3. INCLUDE CART (if logged in)
               if (userId) {
                   Cart.getUserCart(userId, (err, cartItems) => {
                       if (err) return res.status(500).json({ error: 'Cart error', details: err.message });
@@ -108,7 +102,6 @@ const SupermarketController = {
                       });
                   });
               } else {
-                  // Visitor
                   return res.render("homepage", {
                       products: filteredProducts,
                       sort,
@@ -183,29 +176,29 @@ const SupermarketController = {
         });
     });
   },
-
-  /**
-   * Add a new product.
-   */
   add(req, res) {
     const product = {
       productName: req.body.productName,
-      quantity: req.body.quantity != null ? Number(req.body.quantity) : null,
-      price: req.body.price != null ? Number(req.body.price) : null,
+      quantity: req.body.quantity ? Number(req.body.quantity) : null,
+      price: req.body.price ? Number(req.body.price) : null,
       image: req.body.image || null,
       category: req.body.category || null,
-      hidden: req.body.hidden
     };
+    Supermarket.add(product, (err) => {
+      if (err) {
+        if (err.type === "duplicate") {
+          req.flash("error", err.message);
+          return res.redirect("/adminView");
+        }
 
-    Supermarket.add(product, (err, result) => {
-      if (err) return res.status(500).json({ error: 'Database error', details: err.message });
-      return res.redirect('/adminView');
+        req.flash("error", "Database error");
+        return res.redirect("/adminView");
+      }
+
+      req.flash("success", "Product added successfully!");
+      return res.redirect("/adminView");
     });
   },
-
-  /**
-   * Update a product by ID (partial updates supported).
-   */
   update(req, res) {
     const id = req.params.id || req.params.productId;
     const product = {};

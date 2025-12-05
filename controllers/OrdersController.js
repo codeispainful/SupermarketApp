@@ -1,7 +1,7 @@
 const Orders = require('../models/Orders');
 
 const OrdersController = {
-    viewInvoice(req, res) {
+viewInvoice(req, res) {
     const orderId = req.params.orderId;
 
     Orders.getOrderById(orderId, (err, orders) => {
@@ -10,16 +10,13 @@ const OrdersController = {
             return res.redirect('/');
         }
 
-        // 🔒 Get logged in user ID
         const loggedInUserId = req.session.user.userId;
 
-        // 🔒 Check if this order belongs to the logged-in user
         if (req.session.user.role !== 'admin' && orders[0].userid !== loggedInUserId) {
             req.flash("error", "Unauthorized access to invoice.");
             return res.redirect('/');
         }
 
-        // Convert subtotal to numbers
         orders.forEach(item => {
             item.subtotal = parseFloat(item.subtotal);
         });
@@ -32,6 +29,8 @@ const OrdersController = {
         });
     });
 },
+
+// Admin REMEMBER!!!!!!
 viewAll(req, res) {
     const params = {
         search: req.query.search || ''

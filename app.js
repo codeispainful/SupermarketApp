@@ -114,14 +114,6 @@ app.get('/myReviews',checkAuthenticated, (req, res) => {
   return ReviewController.getReviewbyUserId(req, res);
 });
 
-app.get('/editReview/:id', checkAuthenticated, (req, res) => {
-  return ReviewController.getEditReview(req, res);
-});
-
-app.post('/editReview/:id', checkAuthenticated, (req, res) => {
-  return ReviewController.editReviewById(req, res);
-});
-
 app.get('/deleteReview/:id', checkAuthenticated, (req, res) => {
   return ReviewController.deleteReview(req, res);
 });

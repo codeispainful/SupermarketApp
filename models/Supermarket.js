@@ -1,15 +1,7 @@
 const db = require('../db');
+const Cart = require('./Cart');
 
-/**
- * Function-based model for products table.
- * Fields: productId, productName, quantity, price, image
- */
 const Supermarket = {
-  /**
-   * Get all products. params may include { limit, offset, search }.
-   * @param {Object} params
-   * @param {Function} callback (err, rows)
-   */
   getAll(params, callback) {
     let sql = 'SELECT productId, productName, quantity, price, image, category, hidden FROM products';
     const values = [];
@@ -30,12 +22,6 @@ const Supermarket = {
 
     db.query(sql, values, callback);
   },
-
-  /**
-   * Get a product by ID.
-   * @param {number} productId
-   * @param {Function} callback (err, row)
-   */
   getById(productId, callback) {
     const sql = 'SELECT productId, productName, quantity, price, image, hidden, category FROM products WHERE productId = ?';
     db.query(sql, [productId], (err, results) => {
@@ -43,34 +29,34 @@ const Supermarket = {
       callback(null, results[0] || null);
     });
   },
-
-  /**
-   * Add a new product.
-   * @param {Object} product { productName, quantity, price, image }
-   * @param {Function} callback (err, result)
-   */
   add(product, callback) {
-    const sql = 'INSERT INTO products (productName, quantity, price, image, category, hidden) VALUES (?, ?, ?, ?, ?, ?)';
-    const params = [
-      product.productName || null,
-      product.quantity != null ? product.quantity : null,
-      product.price != null ? product.price : null,
-      product.image || null,
-      product.category || null,
-      product.hidden || null,
-    ];
-    db.query(sql, params, (err, result) => {
+    const checkSql = 'SELECT * FROM products WHERE productName = ?';
+    db.query(checkSql, [product.productName], (err, results) => {
       if (err) return callback(err);
-      callback(null, { insertId: result.insertId, ...product });
+
+      if (results.length > 0) {
+        return callback({ type: "duplicate", message: "Product already exists" });
+      }
+
+      const sql = `INSERT INTO products 
+        (productName, quantity, price, category, image)
+        VALUES (?, ?, ?, ?, ?)`;
+
+      const params = [
+        product.productName || null,
+        product.quantity ?? null,
+        product.price ?? null,
+        product.category || null,
+        product.image || null,
+      ];
+
+      db.query(sql, params, (err, result) => {
+        if (err) return callback(err);
+        
+        callback(null, result.insertId);
+      });
     });
   },
-
-  /**
-   * Update a product by ID. Supports partial updates.
-   * @param {number} productId
-   * @param {Object} product Partial product fields to update
-   * @param {Function} callback (err, result)
-   */
   update(productId, product, callback) {
     const fields = [];
     const values = [];
@@ -112,12 +98,6 @@ const Supermarket = {
       callback(null, result);
     });
   },
-
-  /**
-   * Delete a product by ID.
-   * @param {number} productId
-   * @param {Function} callback (err, result)
-   */
   delete(productId, callback) {
     const sql = 'UPDATE products SET hidden = 1 WHERE productId = ?';
     db.query(sql, [productId], callback);
@@ -138,6 +118,13 @@ const Supermarket = {
   },
 
   updateStockById(productId, newQuantity, callback) {
+    if (newQuantity === 0) {
+      Cart.deleteByProductId(productId, (err) => {
+        if (err) console.error("Error deleting product from carts:", err);
+          const sql = "UPDATE products SET quantity = ? WHERE productId = ?";
+          db.query(sql, [newQuantity, productId], callback);
+      });
+    }
     const sql = "UPDATE products SET quantity = ? WHERE productId = ?";
     db.query(sql, [newQuantity, productId], callback);
   },

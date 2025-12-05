@@ -53,6 +53,8 @@ const UserController = {
             return res.redirect('/viewProfile');
         });
     },
+
+    // ADMINN
     viewAll(req, res) {
         const params = {
             search: req.query.search || ''
