@@ -78,6 +78,7 @@
             border-radius: 10px;
         }
     </style>
+    <script src="https://www.paypal.com/sdk/js?client-id=<%= process.env.PAYPAL_CLIENT_ID %>&currency=SGD"></script>
 </head>
 <body>
     <% if (success && success.length > 0) { %>
@@ -142,7 +143,7 @@
                 <% }) %>
 
                 <div class="total-section d-flex justify-content-between align-items-center mt-4">
-                    <h4>Total: SGD <%= totalCost.toFixed(2) %></h4>
+                    <h4 id="cartTotal">Total: SGD <%= totalCost.toFixed(2) %></h4>
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-update">Update Qty</button>
@@ -152,13 +153,48 @@
                             onclick="return confirm('This will remove ALL items from your cart. Are you absolutely sure?');">
                             Clear All
                         </a>
+                        <!-- PayPal related code -->
+                        <div id="paypal-button-container"></div>
+                        <%- console.log('cart received:',JSON.stringify(cartItems || [])); %>
+                        <script>
+                            // Make the cart array available in JS
+                            const cart = <%- JSON.stringify(cartItems || []) %>;
+                            console.log('cart sent:',cart);
+                            function renderPaypalButtons() {
+                                paypal.Buttons({
+                                createOrder() {
+                                    return fetch('/api/paypal/create-order', {
+                                    method: 'POST',
+                                    headers: { 'content-type': 'application/json' },
+                                    body: JSON.stringify({ cart })
+                                    })
+                                    .then(res => res.json())
+                                    .then(data => data.id);
+                                },
 
-                        <a href="/checkout" class="btn btn-checkout">Checkout</a>
+                                onApprove(data) {
+                                    return fetch('/api/paypal/capture-order', {
+                                    method: 'POST',
+                                    headers: { 'content-type': 'application/json' },
+                                    body: JSON.stringify({ orderID: data.orderID })
+                                    })
+                                    .then(res => res.json())
+                                    .then(result => {
+                                    window.location.href = `/invoice/${result.orderId}`;
+                                    });
+                                }
+                                }).render('#paypal-button-container');
+                            }
+                            if (cart.length) {
+                                renderPaypalButtons();
+                            } else {
+                                document.getElementById('paypal-button-container').style.display = 'none';
+                            }
+                        </script>
+                        <!-- PayPal related code -->
                     </div>
                 </div>
-
             </form>
-
         <% } %>
     </div>
 

@@ -75,7 +75,7 @@ const CartController = {
                     completed++;
                     if (completed === cartItems.length) {
                         // All product info fetched
-                        res.render('viewcart', { cartItems });
+                        res.render('viewcart', { cartItems , paypalClientId: process.env.PAYPAL_CLIENT_ID });
                     }
                 });
             });
@@ -137,72 +137,55 @@ const CartController = {
             return res.redirect('/viewcart');
         });
     },
-    checkout(req, res) {
-        const userId = req.session.user.userId;
+    finalizeCheckout(userId, req, res, callback) {
         Cart.getUserCart(userId, (err, cartItems) => {
-            if (err) {
-                req.flash("error", "Failed to retrieve cart for checkout.");
-                return res.redirect('/viewcart');
-            }
-            if (cartItems.length === 0) {
-                req.flash("error", "Your cart is empty.");
-                return res.redirect('/viewcart');
+            if (err || cartItems.length === 0) {
+            return callback(new Error("Cart is empty or failed to load"));
             }
 
-            // Fetch latest stock info
             let processed = 0;
             let errorOccurred = false;
 
             cartItems.forEach((item, index) => {
-                Supermarket.getById(item.productId, (err, product) => {
-                    if (errorOccurred) return;
+            Supermarket.getById(item.productId, (err, product) => {
+                if (errorOccurred) return;
 
-                    if (err || product == null) {
-                        errorOccurred = true;
-                        req.flash("error", "Failed to retrieve product info.");
-                        return res.redirect('/viewcart');
-                    }
+                if (err || !product) {
+                errorOccurred = true;
+                return callback(new Error("Product not found"));
+                }
 
-                    const newStock = product.quantity - item.quantity;
-                    if (newStock < 0) {
-                        errorOccurred = true;
-                        req.flash("error", `Not enough stock for ${product.productName}.`);
-                        return res.redirect('/viewcart');
-                    }
+                const newStock = product.quantity - item.quantity;
+                if (newStock < 0) {
+                errorOccurred = true;
+                return callback(new Error(`Not enough stock for ${product.productName}`));
+                }
 
-                    Supermarket.updateStockById(item.productId, newStock, (err) => {
-                        if (errorOccurred) return;
+                Supermarket.updateStockById(item.productId, newStock, (err) => {
+                if (errorOccurred) return;
 
-                        if (err) {
-                            errorOccurred = true;
-                            req.flash("error", "Failed to update stock.");
-                            return res.redirect('/viewcart');
-                        }
+                if (err) {
+                    errorOccurred = true;
+                    return callback(new Error("Failed to update stock"));
+                }
 
-                        // Attach price for order subtotal
-                        cartItems[index].price = product.price;
+                // Attach price
+                cartItems[index].price = product.price;
 
-                        processed++;
-                        if (processed === cartItems.length) {
-                            // Insert into orders
-                            Orders.createOrder(userId, cartItems, (err, orderId) => {
-                                if (err) {
-                                    req.flash("error", "Failed to create order.");
-                                    return res.redirect('/viewcart');
-                                }
-                                // Clear cart
-                                Cart.checkout(userId, (err) => {
-                                    if (err) {
-                                        req.flash("error", "Failed to clear cart after checkout.");
-                                        return res.redirect('/viewcart');
-                                    }
-                                    req.flash("success", "Checkout successful!");
-                                    return res.redirect(`/invoice/${orderId}`);
-                                });
-                            });
-                        }
+                processed++;
+                if (processed === cartItems.length) {
+                    Orders.createOrder(userId, cartItems, (err, orderId) => {
+                    if (err) return callback(new Error("Failed to create order"));
+
+                    Cart.checkout(userId, (err) => {
+                        if (err) return callback(new Error("Failed to clear cart"));
+
+                        callback(null, orderId);
                     });
+                    });
+                }
                 });
+            });
             });
         });
     },

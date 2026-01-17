@@ -36,11 +36,20 @@ const Orders = require('./models/Orders');
 const ReviewController = require('./controllers/ReviewController');
 const Review = require('./models/Review');
 
+const TransactionController = require('./controllers/TransactionController');
+const Transaction = require('./models/Transaction');
+
+const paypal = require('./services/paypal');
+
 // For session management and flash messages
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
 // Set up view engine
 app.set('view engine', 'ejs');
+
+// enable json parsing
+app.use(express.json());
+
 // enable static files
 app.use(express.static('public'));
 
@@ -222,6 +231,94 @@ app.get('/adminReviews',checkAuthenticated, checkAuthorised(['admin']), (req, re
 
 app.get('/deleteReviewAdmin/:id',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
   return ReviewController.deleteReviewAdmin(req, res);
+});
+
+//paypal routes ----------------------------------------------------------------
+// PayPal: Create Order
+app.post('/api/paypal/create-order', async (req, res) => {
+  try {
+    const { cart } = req.body;
+    let total = 0;
+    for (const item of cart) {
+      const product = await Supermarket.getByIdPayPal(item.productId);
+      if (!product || product.stock < item.quantity) {
+        return res.status(400).json({ error: 'Invalid cart' });
+      }
+      total += product.price * item.quantity;
+    }
+    console.log(total.toFixed(2));
+    const order = await paypal.createOrder(total.toFixed(2));
+    console.log('PayPal createOrder response:', order);
+    if (order && order.id) {
+      res.json({ id: order.id });
+    } else {
+      res.status(500).json({ error: 'Failed to create PayPal order', details: order });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create PayPal order', message: err.message });
+  }
+});
+
+// capture paypal order and finalize checkout
+app.post('/api/paypal/capture-order', async (req, res) => {
+  try {
+    //paypal order id
+    const { orderID } = req.body;
+    const userId = req.session.user.userId;
+
+    //Capture PayPal payment
+    const capture = await paypal.captureOrder(orderID);
+    console.log('PayPal captureOrder response:', capture);
+
+    if (capture.status !== "COMPLETED") {
+      return res.status(400).json({ error: 'Payment not completed' });
+    }
+
+    //FINALIZE checkout (reuse existing logic)
+    CartController.finalizeCheckout(userId, req, res, (err, orderId) => {
+      if (err) {
+        console.error(err.message);
+
+        // IMPORTANT: Payment succeeded but checkout failed
+        // Log this for admin/manual recovery
+        return res.status(500).json({
+          error: 'Payment succeeded but order processing failed'
+        });
+      }
+      details = {
+        id: capture.id,
+        orderId: orderId,
+        payerId: capture.payer.payer_id,
+        payerEmail: capture.payer.email_address,
+        amount: capture.purchase_units[0].payments.captures[0].amount.value,
+        currency: 'SGD',
+        status: capture.status,
+        time: capture.purchase_units[0].payments.captures[0].create_time
+      }
+      console.log("Capture details:", details);
+
+      //create transaction record
+      TransactionController.createTransaction(details, (err, result)=>{
+        if(err){
+          console.error("Failed to record transaction:", err)
+        } else {
+          console.log("Transaction recorded:", result);
+        }
+      });
+      //Success
+      return res.json({
+        success: true,
+        orderId
+      });
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: 'Failed to capture PayPal order',
+      message: err.message
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

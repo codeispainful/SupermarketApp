@@ -29,6 +29,15 @@ const Supermarket = {
       callback(null, results[0] || null);
     });
   },
+  getByIdPayPal(productId) {
+    return new Promise((resolve, reject) => {
+        const sql = 'SELECT productId, productName, quantity, price, image, hidden, category FROM products WHERE productId = ?';
+        db.query(sql, [productId], (err, results) => {
+            if (err) return reject(err);
+            resolve(results[0] || null);
+        });
+    });
+  },
   add(product, callback) {
     const checkSql = 'SELECT * FROM products WHERE productName = ?';
     db.query(checkSql, [product.productName], (err, results) => {
