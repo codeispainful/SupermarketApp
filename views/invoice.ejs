@@ -71,6 +71,7 @@ th, td { padding: 10px; text-align: left; }
         <p><strong>Order ID:</strong> <%= orderId %></p>
         <p><strong>User ID:</strong> <%= orders[0].userid %></p>
         <p><strong>Order Date:</strong> <%= new Date(orderDatetime).toLocaleString() %></p>
+        <p><strong>Transaction ID:</strong> <%= orders[0].transaction_id %></p>
 
         <table class="table table-bordered">
             <thead>

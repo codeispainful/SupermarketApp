@@ -1,7 +1,7 @@
 const db = require('../db');
 
 const Orders = {
-    createOrder(userId, cartItems, callback) {
+createOrder(userId, transactionId, cartItems, callback) {
     console.log("Starting createOrder...");
     console.log("User ID:", userId);
     console.log("Cart Items:", cartItems);
@@ -24,6 +24,7 @@ const Orders = {
         // Prepare bulk insert values
         const values = cartItems.map(item => [
             orderId,
+            transactionId,
             userId,
             item.productId,
             item.quantity,
@@ -32,7 +33,7 @@ const Orders = {
         ]);
         console.log("Prepared values for insert:", values);
 
-        const sql = 'INSERT INTO orders (orderid, userid, productid, quantity, subtotal, order_datetime) VALUES ?';
+        const sql = 'INSERT INTO orders (orderid, transaction_id, userid, productid, quantity, subtotal, order_datetime) VALUES ?';
         db.query(sql, [values], (err, result) => {
             if (err) {
                 console.error("Error inserting orders:", err);
@@ -57,14 +58,23 @@ getOrderById(orderId, callback) {
 },
 getOrdersByUser(userId, callback) {
     const sql = `
-        SELECT orderid,
-        userid,
-        MIN(order_datetime) AS order_datetime,
-        SUM(subtotal) AS total_amount
-        FROM orders
-        WHERE userid = ?
-        GROUP BY orderid
-        ORDER BY order_datetime DESC
+        SELECT
+            o.orderid,
+            o.transaction_id,
+            o.userid,
+            MIN(o.order_datetime) AS order_datetime,
+            SUM(o.subtotal) AS total_amount,
+            tp.refunded AS refunded
+        FROM orders o
+        JOIN transactions_paypal tp
+            ON o.transaction_id = tp.id
+        WHERE o.userid = ?
+        GROUP BY
+            o.orderid,
+            o.transaction_id,
+            o.userid,
+            tp.refunded
+        ORDER BY order_datetime DESC;
     `;
     db.query(sql, [userId], callback);
 },
@@ -107,6 +117,18 @@ orderChecker(userid, productid, callback) {
         }
     });
 },
-}
+getUserIdByOrderID(orderID) {
+    return new Promise((resolve, reject) => {
+        const sql = 'SELECT userid FROM orders WHERE orderid = ? LIMIT 1';
+        db.query(sql, [orderID], (err, results) => {
+            if (err) {
+                console.log("Error fetching userId by orderID:", err);
+                return reject(err);
+            }
+            resolve(results[0].userid);
+        });
+    });
+},
+};
 
 module.exports = Orders;

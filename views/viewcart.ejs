@@ -180,7 +180,13 @@
                                     })
                                     .then(res => res.json())
                                     .then(result => {
-                                    window.location.href = `/invoice/${result.orderId}`;
+                                    // prefer the capture id inside purchase_units.payments.captures
+                                    const captureId = result.capture?.purchase_units?.[0]?.payments?.captures?.[0]?.id || result.captureId || result.capture?.id;
+                                    if (captureId) {
+                                        window.location.href = `/pending-payment?captureId=${encodeURIComponent(captureId)}`;
+                                    } else {
+                                        window.location.href = '/';
+                                    }
                                     });
                                 }
                                 }).render('#paypal-button-container');
@@ -192,6 +198,9 @@
                             }
                         </script>
                         <!-- PayPal related code -->
+                        <!-- NETS related code -->
+                        <a href="/generateNETSQR" class="btn btn-checkout">Checkout with NETS</a>
+                        <!-- NETS related code -->
                     </div>
                 </div>
             </form>

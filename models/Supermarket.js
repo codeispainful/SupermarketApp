@@ -137,6 +137,11 @@ const Supermarket = {
     const sql = "UPDATE products SET quantity = ? WHERE productId = ?";
     db.query(sql, [newQuantity, productId], callback);
   },
+
+  getProductPriceById(productId, callback) {
+    const sql = "SELECT price FROM products WHERE productId = ?";
+    db.query(sql, [productId], callback);
+  }
 };
 
 module.exports = Supermarket;

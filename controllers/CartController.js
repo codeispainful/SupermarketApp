@@ -137,7 +137,7 @@ const CartController = {
             return res.redirect('/viewcart');
         });
     },
-    finalizeCheckout(userId, req, res, callback) {
+    finalizeCheckout(userId, transactionId, req, res, callback) {
         Cart.getUserCart(userId, (err, cartItems) => {
             if (err || cartItems.length === 0) {
             return callback(new Error("Cart is empty or failed to load"));
@@ -174,7 +174,7 @@ const CartController = {
 
                 processed++;
                 if (processed === cartItems.length) {
-                    Orders.createOrder(userId, cartItems, (err, orderId) => {
+                    Orders.createOrder(userId, transactionId, cartItems, (err, orderId) => {
                     if (err) return callback(new Error("Failed to create order"));
 
                     Cart.checkout(userId, (err) => {

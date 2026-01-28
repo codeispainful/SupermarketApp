@@ -131,6 +131,7 @@
                     <thead>
                         <tr>
                             <th>Order ID</th>
+                            <th>Transaction ID</th>
                             <th>Date</th>
                             <th>Total (SGD)</th>
                             <th></th>
@@ -141,6 +142,7 @@
                         <% history.forEach(order => { %>
                             <tr>
                                 <td><strong><%= order.orderid %></strong></td>
+                                <td><%= order.transaction_id %></td>
                                 <td><%= new Date(order.order_datetime).toLocaleString() %></td>
                                 <td>SGD <%= order.total_amount.toFixed(2) %></td>
                                 <td>
@@ -148,6 +150,21 @@
                                         View Invoice
                                     </a>
                                 </td>
+                                <% if (order.refunded == 0) { %>
+                                    <td>
+                                        <% if (order.refund_requested) { %>
+                                            <span class="badge bg-warning text-dark">Refund Requested</span>
+                                        <% } else { %>
+                                            <a href="/reqRefund/<%= order.transaction_id %>" class="btn btn-sm btn-outline-danger">
+                                                Request Refund
+                                            </a>
+                                        <% } %>
+                                    </td>
+                                <% } else { %>
+                                    <td>
+                                        <p>Order Refunded</p>
+                                    </td>
+                                <% } %>
                             </tr>
                         <% }) %>
                     </tbody>

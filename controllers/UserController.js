@@ -1,9 +1,10 @@
 const User = require('../models/User');
 const Orders = require('../models/Orders');
 const Review = require('../models/Review');
+const Refund = require('../models/Refund');
 
 const UserController = {
-    viewById(req, res) {
+    async viewById(req, res) {
         const userId = req.session.user.userId;
         User.viewById(userId, (err, user) => {
             if (err) return res.status(500).json({ error: 'Database error', details: err.message });
@@ -28,7 +29,22 @@ const UserController = {
                     history.sort((a, b) => b.total_amount - a.total_amount);
                 }
 
-                return res.render('viewProfile', { user, history, sort });
+                // Check all refunds in a single query for efficiency
+                const txnIds = history.map(h => h.transaction_id).filter(Boolean);
+                Refund.refundcheckMany(txnIds, (rerr, rows) => {
+                    if (rerr) {
+                        console.error('Refund check many error:', rerr);
+                        history.forEach(item => item.refund_requested = false);
+                        return res.render('viewProfile', { user, history, sort });
+                    }
+
+                    const requestedSet = new Set((rows || []).map(r => String(r.transaction_id)));
+                    history.forEach(item => {
+                        item.refund_requested = requestedSet.has(String(item.transaction_id));
+                    });
+
+                    return res.render('viewProfile', { user, history, sort });
+                });
             });
         });
     },

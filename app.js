@@ -4,6 +4,8 @@ const multer = require('multer');
 const session = require('express-session'); 
 const flash = require('connect-flash'); 
 const app = express();
+const bodyParser = require("body-parser");
+const axios = require('axios');
 
 // set up multer for file uploads
 const storage = multer.diskStorage({
@@ -39,13 +41,22 @@ const Review = require('./models/Review');
 const TransactionController = require('./controllers/TransactionController');
 const Transaction = require('./models/Transaction');
 
+const RefundController = require('./controllers/RefundController')
+const Refund = require('./models/Refund');
+
 const paypal = require('./services/paypal');
+const paymentNotifier = require('./services/paymentNotifier');
+
+const netsQr = require('./services/nets');
 
 // For session management and flash messages
 const { checkAuthenticated, checkAuthorised } = require('./middleware');
 
 // Set up view engine
 app.set('view engine', 'ejs');
+
+// set up middleware to handle PayPal webhooks
+app.use('/api/paypal/webhook', express.raw({ type: 'application/json' }));
 
 // enable json parsing
 app.use(express.json());
@@ -71,6 +82,8 @@ app.use((req, res, next) => {
     res.locals.error = req.flash("error");
     next();
 });
+
+app.use(bodyParser.json());
 
 // Routes using controller methods
 // Login Reg -------------------------------------------------------------------------------------------------------------------------------
@@ -126,6 +139,10 @@ app.get('/myReviews',checkAuthenticated, (req, res) => {
 app.get('/deleteReview/:id', checkAuthenticated, (req, res) => {
   return ReviewController.deleteReview(req, res);
 });
+
+app.get('/reqRefund/:id', checkAuthenticated, (req,res) =>{
+  return RefundController.getRequestForm(req, res);
+})
 
 //CART HANDLER-----------------------------------------------------------------------------------------------------------------------------------
 app.post('/addtocart/:id',checkAuthenticated, (req, res) => {
@@ -225,6 +242,16 @@ app.get('/adminOrders',checkAuthenticated, checkAuthorised(['admin']), (req, res
   return OrdersController.viewAll(req, res);
 });
 
+// Admin: view all transactions
+app.get('/admin/transactions', checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return TransactionController.adminList(req, res);
+});
+
+// Admin: refund a transaction
+app.post('/admin/transactions/:id/refund', checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return TransactionController.adminRefund(req, res);
+});
+
 app.get('/adminReviews',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
   return ReviewController.getAllReviewsAdmin(req, res);
 });
@@ -233,10 +260,60 @@ app.get('/deleteReviewAdmin/:id',checkAuthenticated, checkAuthorised(['admin']),
   return ReviewController.deleteReviewAdmin(req, res);
 });
 
+app.get('/refundReqs',checkAuthenticated, checkAuthorised(['admin']), (req, res) => {
+  return RefundController.getAllPending(req, res);
+});
+
 //paypal routes ----------------------------------------------------------------
+
+//webhooks
+app.post(
+  '/api/paypal/webhook',
+  express.raw({ type: 'application/json' }), // keep this before any JSON parser
+  async (req, res) => {
+    try {
+      // Pass raw body and headers to verifyWebhook
+      const isValid = await paypal.verifyWebhook(req.body.toString(), req.headers);
+      if (!isValid) {
+        console.log('Invalid PayPal webhook');
+        return res.sendStatus(400);
+      }
+
+      // Parse the event after verification
+      const event = JSON.parse(req.body.toString());
+      console.log('PayPal Webhook Event:', event.event_type);
+
+      switch (event.event_type) {
+        case 'PAYMENT.CAPTURE.COMPLETED':
+          await paypal.handlePaymentCompleted(event);
+          break;
+
+        case 'PAYMENT.CAPTURE.REFUNDED':
+          await paypal.handlePaymentRefunded(event);
+          break;
+
+        /*
+        case 'PAYMENT.CAPTURE.DENIED':
+          await paypal.handlePaymentDenied?.(event);
+          break;
+        */
+
+        default:
+          console.log('Unhandled event:', event.event_type);
+      }
+
+      res.sendStatus(200);
+    } catch (err) {
+      console.error('Webhook error:', err);
+      res.sendStatus(500);
+    }
+  }
+);
+
 // PayPal: Create Order
-app.post('/api/paypal/create-order', async (req, res) => {
+app.post('/api/paypal/create-order',checkAuthenticated, async (req, res) => {
   try {
+    const userId = req.session.user.userId;
     const { cart } = req.body;
     let total = 0;
     for (const item of cart) {
@@ -247,7 +324,7 @@ app.post('/api/paypal/create-order', async (req, res) => {
       total += product.price * item.quantity;
     }
     console.log(total.toFixed(2));
-    const order = await paypal.createOrder(total.toFixed(2));
+    const order = await paypal.createOrder(total.toFixed(2),userId);
     console.log('PayPal createOrder response:', order);
     if (order && order.id) {
       res.json({ id: order.id });
@@ -260,65 +337,240 @@ app.post('/api/paypal/create-order', async (req, res) => {
 });
 
 // capture paypal order and finalize checkout
-app.post('/api/paypal/capture-order', async (req, res) => {
+app.post('/api/paypal/capture-order', checkAuthenticated, async (req, res) => {
   try {
-    //paypal order id
     const { orderID } = req.body;
-    const userId = req.session.user.userId;
 
-    //Capture PayPal payment
     const capture = await paypal.captureOrder(orderID);
     console.log('PayPal captureOrder response:', capture);
 
-    if (capture.status !== "COMPLETED") {
-      return res.status(400).json({ error: 'Payment not completed' });
+    // Prefer the actual capture id (from payments.captures[0].id) over the top-level order id
+    let captureId = undefined;
+    try {
+      captureId = capture?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
+    } catch (e) {
+      captureId = undefined;
     }
 
-    //FINALIZE checkout (reuse existing logic)
-    CartController.finalizeCheckout(userId, req, res, (err, orderId) => {
-      if (err) {
-        console.error(err.message);
+    // fallback to other possible locations (but prefer captures array)
+    if (!captureId) {
+      captureId = capture?.capture?.id || capture?.id || (capture?.result && capture.result?.id) || undefined;
+    }
 
-        // IMPORTANT: Payment succeeded but checkout failed
-        // Log this for admin/manual recovery
-        return res.status(500).json({
-          error: 'Payment succeeded but order processing failed'
-        });
-      }
-      details = {
-        id: capture.id,
-        orderId: orderId,
-        payerId: capture.payer.payer_id,
-        payerEmail: capture.payer.email_address,
-        amount: capture.purchase_units[0].payments.captures[0].amount.value,
-        currency: 'SGD',
-        status: capture.status,
-        time: capture.purchase_units[0].payments.captures[0].create_time
-      }
-      console.log("Capture details:", details);
+    if (!captureId) console.warn('Could not extract captureId from PayPal response', capture);
 
-      //create transaction record
-      TransactionController.createTransaction(details, (err, result)=>{
-        if(err){
-          console.error("Failed to record transaction:", err)
-        } else {
-          console.log("Transaction recorded:", result);
-        }
-      });
-      //Success
-      return res.json({
-        success: true,
-        orderId
-      });
-    });
+    // Check completed status based on capture entry if available
+    const isCompleted = Boolean(
+      capture?.purchase_units?.[0]?.payments?.captures?.[0]?.status === 'COMPLETED' ||
+      capture?.status === 'COMPLETED'
+    );
 
+    // DO NOT finalize checkout here! Let webhook handle it.
+    res.json({ success: isCompleted, capture, captureId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      error: 'Failed to capture PayPal order',
-      message: err.message
-    });
+    res.status(500).json({ error: 'Failed to capture PayPal order', message: err.message });
   }
+});
+
+// Render pending payment page
+app.get('/pending-payment', checkAuthenticated, (req, res) => {
+  res.render('pendingPayment');
+});
+
+// Check payment finalization (polled by frontend)
+app.get('/api/payment-status', checkAuthenticated, async (req, res) => {
+  try {
+    const captureId = req.query.captureId;
+    if (!captureId) return res.status(400).json({ error: 'captureId required' });
+
+    // fetch transaction row if present to include orderId
+    Transaction.getById(captureId, (err, row) => {
+      if (err) {
+        console.error('Payment status DB error:', err);
+        return res.status(500).json({ error: err.message });
+      }
+      if (row) {
+        return res.json({ finalized: true, orderId: row.orderId });
+      }
+      return res.json({ finalized: false });
+    });
+  } catch (err) {
+    console.error('Payment status check error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// SSE for PayPal capture notifications (webhook will notify)
+app.get('/sse/paypal/:captureId', checkAuthenticated, (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+
+  const captureId = req.params.captureId;
+
+  // Subscribe the response to be notified when webhook finalises
+  paymentNotifier.subscribe(captureId, res);
+
+  // send a small heartbeat to ensure connection opens
+  res.write(`data: ${JSON.stringify({ connected: true })}\n\n`);
+});
+
+//refund request route
+app.post('/api/refunds/request', checkAuthenticated, upload.single('image'), async (req, res) => {
+  const userId = req.session.user.userId;
+  // For multipart/form-data, multer parses fields into req.body and file into req.file
+  console.log('refund form body:', req.body, 'file:', req.file);
+
+  const { transactionId, reason } = req.body || {};
+  const image = req.file ? req.file.filename : null;
+
+  if (!transactionId || !reason) {
+    return res.status(400).json({ error: 'transactionId and reason are required' });
+  }
+
+  Refund.create(
+    transactionId,
+    userId,
+    reason,
+    image,
+    'PENDING',
+    (err) => {
+      if (err) {
+        console.error('Refund request failed:', err);
+        req.flash('error', 'Failed to submit refund request.');
+        return res.redirect('/viewProfile');
+      }
+
+      req.flash("success", "Refund request submitted successfully, please wait patiently for approval.");
+      return res.redirect('/viewProfile');
+    }
+  );
+});
+
+app.post('/api/admin/refunds/:id/approve', checkAuthorised(['admin']), async (req, res) => {
+  const transactionId = req.params.id;
+  try {
+    const refundRequest = await RefundController.getById(transactionId);
+
+    const transaction = await new Promise((resolve, reject) => {
+      Transaction.getById(transactionId, (err, row) => {
+        if (err) return reject(err);
+        resolve(row);
+      });
+    });
+
+    if (!transaction) return res.status(404).json({ error: 'Transaction not found' });
+    if (transaction.refunded === 1) {
+      return res.status(400).send('Already refunded');
+    }
+
+    const refund = await paypal.refundCapture(transaction.id);
+
+    if (refundRequest) {
+      if (refundRequest.status !== 'PENDING') {
+        return res.status(400).json({ error: 'Already processed' });
+      }
+      // update existing refund record to REFUNDED
+      await new Promise((resolve, reject) => {
+        Refund.updateStatus(refundRequest.id, 'REFUNDED', refund.id, (err) => err ? reject(err) : resolve());
+      });
+    } else {
+      // do not create a new refund record; just log and continue
+      console.log('No existing refund request for transaction', transactionId, '- skipping insert, will mark transaction refunded');
+    }
+
+    await new Promise((resolve, reject) => {
+      Transaction.markRefunded(transactionId, refund.id || null, (err) => err ? reject(err) : resolve());
+    });
+
+    res.redirect('/adminView');
+  } catch (err) {
+    console.error('Admin refund approve error:', err);
+    return res.status(500).json({ error: 'Failed to process refund' });
+  }
+});
+//NETS NETS NETS NETS NETS NETS NETS NETS NETS NETS -----------------------------------------------------------------------------------------------------------------
+//NETS QR code
+app.get('/generateNETSQR',checkAuthenticated, netsQr.generateQrCode);
+app.get("/nets-qr/success",checkAuthenticated, (req, res) => {
+    res.render('netsTxnSuccessStatus', { message: 'Transaction Successful!' });
+});
+app.get("/nets-qr/fail",checkAuthenticated, (req, res) => {
+    res.render('netsTxnFailStatus', { message: 'Transaction Failed. Please try again.' });
+})
+
+//SSE for polling payment status
+app.get('/sse/payment-status/:txnRetrievalRef',checkAuthenticated, async (req, res) => {
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    const txnRetrievalRef = req.params.txnRetrievalRef;
+    let pollCount = 0;
+    const maxPolls = 60; // 5 minutes if polling every 5s
+    let frontendTimeoutStatus = 0;
+
+    const interval = setInterval(async () => {
+        pollCount++;
+
+        try {
+            // Call the NETS query API
+            const response = await axios.post(
+                'https://sandbox.nets.openapipaas.com/api/v1/common/payments/nets-qr/query',
+                { txn_retrieval_ref: txnRetrievalRef, frontend_timeout_status: frontendTimeoutStatus },
+                {
+                    headers: {
+                        'api-key': process.env.API_KEY,
+                        'project-id': process.env.PROJECT_ID,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            console.log("Polling response:", response.data);
+            // Send the full response to the frontend
+            res.write(`data: ${JSON.stringify(response.data)}\n\n`);
+        
+            const resData = response.data.result.data;
+
+            // Decide when to end polling and close the connection
+            //Check if payment is successful
+            if (resData.response_code == "00" && resData.txn_status === 1) {
+                // Payment success: send a success message
+                res.write(`data: ${JSON.stringify({ success: true })}\n\n`);
+                clearInterval(interval);
+                res.end();
+            } else if (frontendTimeoutStatus == 1 && resData && (resData.response_code !== "00" || resData.txn_status === 2)) {
+                // Payment failure: send a fail message
+                res.write(`data: ${JSON.stringify({ fail: true, ...resData })}\n\n`);
+                clearInterval(interval);
+                res.end();
+            }
+
+        } catch (err) {
+            clearInterval(interval);
+            res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+            res.end();
+        }
+
+
+        // Timeout
+        if (pollCount >= maxPolls) {
+            clearInterval(interval);
+            frontendTimeoutStatus = 1;
+            res.write(`data: ${JSON.stringify({ fail: true, error: "Timeout" })}\n\n`);
+            res.end();
+        }
+    }, 5000);
+
+    req.on('close', () => {
+        clearInterval(interval);
+    });
 });
 
 const PORT = process.env.PORT || 3000;
